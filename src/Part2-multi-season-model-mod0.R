@@ -17,26 +17,27 @@ library(rjags)
 
 Pobscura <- readRDS(here("data", "Pobscura.rds"))
 
-psophia <- array(c(unlist(Pobscura[,2:12]), unlist(Pobscura[,13:23]), unlist(Pobscura[,24:34]), unlist(Pobscura[,35:45])), c(61, 11, 4))
-str(psophia)
+y <- array(c(unlist(Pobscura[,2:12]), unlist(Pobscura[,13:23]), unlist(Pobscura[,24:34]), unlist(Pobscura[,35:45])), c(61, 11, 4))
+str(y)
 SiteCovs <- Pobscura[,46:49]
 
 # Look at the number of sites with detections for each day
-tmp <- apply(psophia, c(1,3), max, na.rm = TRUE)
+tmp <- apply(y, c(1,3), max, na.rm = TRUE)
 tmp[tmp == "-Inf"] <- NA
 apply(tmp, 2, sum, na.rm = TRUE)
 
 
 # Bundle data
-jags.data <- list(y = psophia, nsite = dim(psophia)[1], nrep = dim(psophia)[2], nyear = dim(psophia)[3])
+jags.data <- list(y = y, nsite = dim(y)[1], nrep = dim(y)[2], nyear = dim(y)[3])
 
 # Initial values
-#inits <- function(){ list(z = apply(psophia, c(1, 3), max))}
+#inits <- function(){ list(z = apply(y, c(1, 3), max)) }
+
 inits <- function(){ 
-  y2 <- y
-  y2[is.na(y2),] <- 0
-  list(z = apply(y2, c(1, 3), max))
-  }
+  z = apply(y, c(1, 3), max)
+  z[is.na(z)] <- 1
+  z <- list(z=z)
+}
 
 
 # Parameters monitored
@@ -50,7 +51,7 @@ nc <- 3
 
 
 # Specify model in BUGS language
-sink("Dynocc.jags")
+sink("Dynocc.jags_mod0")
 cat("
 model {
 
@@ -97,11 +98,22 @@ sink()
 
 
 # Call JAGS from R (BRT 1 min)
-out1 <- jags(jags.data, inits, params, "Dynocc.jags", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, working.directory = getwd())
+out1 <- jags(jags.data, inits, params, "Dynocc.jags_mod0", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, working.directory = getwd())
 
 # Summarize posteriors
 print(out1, dig = 3)
+# Interpret parameters
+# gamma:
+# growth:
+# n.occ:
+# p:
+# phi:
+# psi:
+# turnover:
 
+YEAR <- cbind(rep(1, out1$BUGSoutput$n.sims), rep(2, out1$BUGSoutput$n.sims), rep(3, out1$BUGSoutput$n.sims), rep(4, out1$BUGSoutput$n.sims))
+boxplot(out1$BUGSoutput$sims.list$psi ~ YEAR, col = "gray", ylab = "Occupancy probability", xlab = "Year", las = 1, frame.plot = FALSE)
+apply(apply(y, c(1, 3), max), 2, function(x){sum(!is.na(x))})
 
 
 
@@ -151,7 +163,7 @@ yy <- apply(y, c(1, 3), sum, na.rm = TRUE)
 jags.data <- list(y = yy, nsite = dim(yy)[1], nyear = dim(yy)[2])
 
 # Initial values
-inits <- function(){list(z = apply(y, c(1, 3), max))}
+#inits <- function(){list(z = apply(y, c(1, 3), max))}
 
 # Parameters monitored
 params <- c("psi", "phi", "gamma", "p", "n.occ", "growthr", "turnover")  
