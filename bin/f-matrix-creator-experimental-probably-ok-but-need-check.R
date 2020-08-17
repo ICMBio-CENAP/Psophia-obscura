@@ -108,7 +108,7 @@ f.shrink.matrix<-function(matrix, N){
     newc<-nc%/%N
     old.cols<-seq(1,nc-rem,newc)
     new.matrix<-matrix(NA,nr=nrow(matrix),nc=N)
-    for(i in 1:14)
+    for(i in 1:(N-1))
       new.matrix[,i]<-apply(matrix[,old.cols[i]:(old.cols[i]+newc-1)],1,max,na.rm=T)
     new.matrix[,N]<-apply(matrix[,old.cols[N]:nc],1,max,na.rm=T) 
   }
