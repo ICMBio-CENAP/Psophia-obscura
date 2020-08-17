@@ -125,6 +125,37 @@ createSppData <- function(x) {
 createSppData("Psophia obscura")
 dataRBG_species_Psophia_obscura
 
-# Save to disk
-saveRDS(dataRBG_species_Psophia_obscura, here("data","Pobscura.rds"))
 
+#----- 4 - Read covariate data
+
+# Land cover Mapbiomas
+cover <- read.csv(here("data", "cover_mapbiomas.csv"))
+names(cover)[2] <- "Camera.Trap.Name"
+names(cover)[3] <- "land.cover.16"
+cover$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", cover$Camera.Trap.Name)
+cover$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", cover$Camera.Trap.Name)
+
+# Distance to water
+dist.water <- read.csv(here("data", "dist_agua.csv"))
+names(dist.water)[3] <- "Camera.Trap.Name"
+names(dist.water)[4] <- "dist.water"
+dist.water$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", dist.water$Camera.Trap.Name)
+dist.water$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", dist.water$Camera.Trap.Name)
+
+# Slope
+slope.elev <- read.csv(here("data", "slope_altitd_pt_cam.csv"))
+#names(slope.elev)[2] <- "Camera.Trap.Name"
+names(slope.elev) <- c("seq", "Camera.Trap.Name", "slope", "elevation")
+slope.elev$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", slope.elev$Camera.Trap.Name)
+slope.elev$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", slope.elev$Camera.Trap.Name)
+
+# create a single covariates dataframe
+covars <- merge(cover[,2:3], dist.water[,3:4], by="Camera.Trap.Name")
+covars <- merge(covars, slope.elev[,2:4], by="Camera.Trap.Name")
+
+# merge 
+dataRBG_species_Psophia_obscura$Camera.Trap.Name <- rownames(dataRBG_species_Psophia_obscura)
+Pobscura <- merge(dataRBG_species_Psophia_obscura, covars, by="Camera.Trap.Name")
+
+# Save to disk
+saveRDS(Pobscura, here("data","Pobscura.rds"))
