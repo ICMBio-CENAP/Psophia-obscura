@@ -1,7 +1,7 @@
 # Psophia-obscura
 
-Estudo sobre a conservação do jacamim-das-costas-escuras Psophia obscura na REBIO do Gurupi.
-Por Elildo Carvalho Jr, Alexandre Martins e Eloisa Mendonca
+Estudo sobre a conservação do jacamim-das-costas-escuras *Psophia obscura* na REBIO do Gurupi.
+Por Elildo Carvalho Jr, Alexandre Martins e Eloisa Mendonca.
 Para artigo em preparação
 
 
