@@ -131,7 +131,7 @@ dataRBG_species_Psophia_obscura
 # Land cover Mapbiomas
 cover <- read.csv(here("data", "cover_mapbiomas.csv"))
 names(cover)[2] <- "Camera.Trap.Name"
-names(cover)[3] <- "land.cover.16"
+names(cover)[7] <- "landCover.500m.16"
 cover$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", cover$Camera.Trap.Name)
 cover$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", cover$Camera.Trap.Name)
 
@@ -149,9 +149,14 @@ names(slope.elev) <- c("seq", "Camera.Trap.Name", "slope", "elevation")
 slope.elev$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", slope.elev$Camera.Trap.Name)
 slope.elev$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", slope.elev$Camera.Trap.Name)
 
-# create a single covariates dataframe
-covars <- merge(cover[,2:3], dist.water[,3:4], by="Camera.Trap.Name")
+# tree structure
+trees <- read.csv(here("data", "tree_structure.csv"))
+
+
+## create a single covariates dataframe
+covars <- merge(cover[,c(2,7)], dist.water[,3:4], by="Camera.Trap.Name")
 covars <- merge(covars, slope.elev[,2:4], by="Camera.Trap.Name")
+covars <- merge(covars, trees[,c(2,6,7)], by="Camera.Trap.Name")
 
 # merge 
 dataRBG_species_Psophia_obscura$Camera.Trap.Name <- rownames(dataRBG_species_Psophia_obscura)

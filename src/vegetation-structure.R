@@ -9,47 +9,45 @@ library(here)
 
 
 #----- 3 - Read data-----
-veget <- read.csv(here("psophia", "rbg_veget_08mar2018.csv"), header=TRUE, sep=",")
+veget <- read.csv(here("data", "rbg_veget_08mar2018.csv"), header=TRUE, sep=",")
 colnames(veget)[1] <- "Camera.Trap.Name"
 
-veget <- veget[ order(match(veget$Camera.Trap.Name, X$Camera.Trap.Name)), ] # so funciona se X for lido (mais abaixo)
+#veget <- veget[ order(match(veget$Camera.Trap.Name, X$Camera.Trap.Name)), ] # so funciona se X for lido (mais abaixo)
 
 veget$dist.m <- veget$dist/100
 veget$dap <- veget$cap/pi # criando nova coluna com DAP calculado a partir de CAP
 veget$dap.m <- veget$dap*0.01
 veget$ba <- pi*((veget$dap.m/2)^2) # cria nova coluna com ?rea basal de cada arvore
 veget$rep[veget$rep==""]  <- NA 
-veget$id.ponto <- paste(veget$sitio, veget$trilha, veget$ponto) # criando id para pontos
+veget$id.ponto <- paste(veget$Camera.Trap.Name, veget$trilha, veget$ponto) # criando id para pontos
 repetidos <- subset(veget, (!is.na(veget$rep))) # lista de id com arvores repetidas
 veget.sem.repetidos <- subset(veget, !(id.ponto %in% repetidos$id.ponto)) # excluindo pontos com arvores repetidas
 
 veget <- veget[,c("Camera.Trap.Name", "dist.m", "dap.m", "ba", "m", "q", "rep")]
 
-veget <- subset(veget, Camera.Trap.Name %in% unique(Y$X))
+#veget <- subset(veget, Camera.Trap.Name %in% unique(Y$X))
 
 dim(veget)
 dim(repetidos)
 
 
-
-                              
 #------------------------------------------------------------------------------
 
 # Criando indice de cobertura (area basal/numero de individuos), proporcao de arvores queimadas e mortas 
 
 # criando objeto
-vegetation.hmsc <- data.frame(matrix(NA, nrow=length(unique(veget$sitio)), ncol=6))
+vegetation.hmsc <- data.frame(matrix(NA, nrow=length(unique(veget$Camera.Trap.Name)), ncol=6))
 colnames(vegetation.hmsc) <- c("Camera.Trap.Name", "cover.index", "prop.burned", "prop.dead", "basal.area","tree.density")
-vegetation.hmsc$Camera.Trap.Name <- sort(unique(veget$sitio))
+vegetation.hmsc$Camera.Trap.Name <- sort(unique(veget$Camera.Trap.Name))
   
 for(i in 1:nrow(vegetation.hmsc))    # criando contador
 {
-  a <- subset(veget, sitio == vegetation.hmsc[i,1])
+  a <- subset(veget, Camera.Trap.Name == vegetation.hmsc[i,1])
   vegetation.hmsc[i,2] <- sum(complete.cases(a$ba)/nrow(a))
   vegetation.hmsc[i,3] <- sum(complete.cases(a$m)/nrow(a))
   vegetation.hmsc[i,4] <- sum(complete.cases(a$q)/nrow(a))
   vegetation.hmsc[i,5] <- sum(complete.cases(a$ba))
-  mean.dist <- data.frame(aggregate(a$dist.m~a$sitio, FUN=mean))
+  mean.dist <- data.frame(aggregate(a$dist.m~a$Camera.Trap.Name, FUN=mean))
   vegetation.hmsc[i,6] <- (1/mean.dist$a.dist.m^2)*10000
 }
 
@@ -61,7 +59,7 @@ X <- read.csv("/home/elildojr/Documents/r/hmsc_paper/X.csv", header=T)
 
 vegetation.hmsc <- vegetation.hmsc[ order(match(vegetation.hmsc$Camera.Trap.Name, X$Camera.Trap.Name)), ]
 
-write.csv(vegetation.hmsc, file="/home/elildojr/Documents/r/hmsc_paper/vegetation_hmsc.csv")
+write.csv(vegetation.hmsc, file=here("data", "tree_structure.csv"))
 
 # now copy columns by hand in X matrix
 
@@ -69,15 +67,15 @@ write.csv(vegetation.hmsc, file="/home/elildojr/Documents/r/hmsc_paper/vegetatio
 
 # histogramas de dap para todos os 70 sítios
 require(lattice)
-histogram( ~ dap.m | sitio , data=veget, 
+histogram( ~ dap.m | Camera.Trap.Name , data=veget, 
            layout=c(10,7) , scales= list(y=list(relation="free"),
                                         x=list(relation="free") ) )
 #--------------------------------------------------------------------------------
 
-# histograma de area basal e densidade de arvores para todos os 70 sitios
+# histograma de area basal e densidade de arvores para todos os 70 Camera.Trap.Names
 # para calcular area basal, (1) calcular distancia media, (2) calc dens absoluta, (3) area basal * densidade * 10000 (1 ha)
-mean.ba <- data.frame(aggregate(veget$ba~veget$sitio, FUN=mean))
-mean.dist <- data.frame(aggregate(veget$dist.m~veget$sitio, FUN=mean))
+mean.ba <- data.frame(aggregate(veget$ba~veget$Camera.Trap.Name, FUN=mean))
+mean.dist <- data.frame(aggregate(veget$dist.m~veget$Camera.Trap.Name, FUN=mean))
 tree.dens <- 1/mean.dist$veget.dist.m^2
 basal.area <- mean.ba$veget.ba*tree.dens*10000
 hist(basal.area, main="Basal area near TEAM camera-stations, Gurupi Biological Reserve", xlab="Basal area (m²/ha)")
@@ -94,11 +92,11 @@ mean.dist.96m <- sum(p96[p96$morta=="y",]$dist.m)/nrow(p96[p96$morta=="y",])
 # densidade MORTA em cada s?tio
 # The absolute density ?k of species k is estimated as the proportion of quarters in which the species is found times the estimated absolute density of all trees
 abs.dens.96m <- (nrow(p96[p96$morta=="y",])/nrow(p96))/mean.dist.96m^2
-# area basal MORTA mensurada por sitio
+# area basal MORTA mensurada por Camera.Trap.Name
 mean(p96[p96$morta=="y",]$ba)
 # area basal MORTA por area
 mean(p96$ba)*abs.dens.96m*10000
-# area basal morta/viva por sitio
+# area basal morta/viva por Camera.Trap.Name
 mean(p96$ba)*abs.dens.96m/mean(p96$ba)*abs.dens.96
 
 # propor??o arvores mortas
@@ -110,11 +108,11 @@ mean(p96$ba)*abs.dens.96m/mean(p96$ba)*abs.dens.96
 
 
 
-#with(veget[veget$sitio == "ctrbg2-96",], hist(veget$dap, main="Burned and heavily logged", xlab="DBH",  xlim=c(10,100), breaks=10)) 	# histograma de frequencias por classe de DAP, fazer um por sitio para comparar
-#with(veget[veget$sitio == "ctrbg2-95",], hist(veget$dap, main="Logged", xlab="DBH",  xlim=c(10,100), breaks=10)) 
-#with(veget[veget$sitio == "ctrbg1-33",], hist(veget$dap, main="Ligthly logged", xlab="DBH",  xlim=c(10,100), breaks=10)) 
+#with(veget[veget$Camera.Trap.Name == "ctrbg2-96",], hist(veget$dap, main="Burned and heavily logged", xlab="DBH",  xlim=c(10,100), breaks=10)) 	# histograma de frequencias por classe de DAP, fazer um por Camera.Trap.Name para comparar
+#with(veget[veget$Camera.Trap.Name == "ctrbg2-95",], hist(veget$dap, main="Logged", xlab="DBH",  xlim=c(10,100), breaks=10)) 
+#with(veget[veget$Camera.Trap.Name == "ctrbg1-33",], hist(veget$dap, main="Ligthly logged", xlab="DBH",  xlim=c(10,100), breaks=10)) 
 
-v <- veget[veget$sitio == "ctrbg2-96",]
+v <- veget[veget$Camera.Trap.Name == "ctrbg2-96",]
 
 # Falta script para calcular densidade por classe (por ora ? apenas para mostrar ao Tor e planejar campanha fev2017)
 # O que se segue n?o ? relevante por enquanto

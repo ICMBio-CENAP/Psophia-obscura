@@ -23,7 +23,7 @@ library(ggplot2)
 Pobscura <- readRDS(here("data", "Pobscura.rds"))
 y <- array(c(unlist(Pobscura[,2:12]), unlist(Pobscura[,13:23]), unlist(Pobscura[,24:34]), unlist(Pobscura[,35:45])), c(61, 11, 4))
 str(y)
-SiteCovs <- Pobscura[,46:49]
+SiteCovs <- Pobscura[,46:51]
 
 # Look at the number of sites with detection for each day
 tmp <- apply(y, c(1,3), max, na.rm = TRUE)
