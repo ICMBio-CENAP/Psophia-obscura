@@ -153,7 +153,7 @@ occ.trends <- function() {
 occ.trends()
 
 # save as jpeg
-jpeg(here("results", "occ_trends.jpg"), width = 800, height = 400) # Open jpeg file
+jpeg(here("results", "occ_trends.jpg"), width = 600, height = 400) # Open jpeg file
 occ.trends()
 dev.off()
 
