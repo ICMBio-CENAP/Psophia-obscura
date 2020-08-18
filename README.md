@@ -4,6 +4,8 @@ Estudo sobre a conservação do jacamim-das-costas-escuras *Psophia obscura* na 
 Por Elildo Carvalho Jr, Alexandre Martins e Eloisa Mendonca.
 Para artigo em preparação
 
+<img src="results/occ_trends.jpg" title="Occupancy trends" width="400">
+
 
 ### Descrição
 ```src``` Este diretório contém os códigos para as análises.

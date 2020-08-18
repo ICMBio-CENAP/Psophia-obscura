@@ -116,17 +116,12 @@ print(out1, dig = 3)
 # psi = occupancy probability
 # turnover
 
-plot(1:4, data$psi, type = "l", xlab = "Year", ylab = "Occupancy probability", col = "red", xlim = c(0,K+1), ylim = c(0,1), lwd = 2, lty = 1, frame.plot = FALSE, las = 1)
-lines(1:K, data$psi.app, type = "l", col = "black", lwd = 2)
-points(1:K, out$BUGSoutput$mean$psi, type = "l", col = "blue", lwd = 2)
-segments(1:K, out$BUGSoutput$summary[psiall,3], 1:K, out$BUGSoutput$summary[psiall,7], col = "blue", lwd = 1)
-
-
+# boxplot
 YEAR <- cbind(rep(1, out1$BUGSoutput$n.sims), rep(2, out1$BUGSoutput$n.sims), rep(3, out1$BUGSoutput$n.sims), rep(4, out1$BUGSoutput$n.sims))
 boxplot(out1$BUGSoutput$sims.list$psi ~ YEAR, col = "gray", ylab = "Occupancy probability", xlab = "Year", las = 1, frame.plot = FALSE)
 apply(apply(y, c(1, 3), max), 2, function(x){sum(!is.na(x))})
 
-# plot
+# a better plot
 occ.trends <- function() {
    # extract mean psi
    mean.psi <- apply(out1$BUGSoutput$sims.list$psi, 2, mean) # subset yearly means
@@ -138,7 +133,7 @@ occ.trends <- function() {
    upper.psi <- apply( out1$BUGSoutput$sims.list$psi, 2 , quantile , probs = quants2 , na.rm = TRUE )
    # join in a dataframe
    df1 <- data.frame(cbind(mean.psi, lower.psi, upper.psi)) # join them in a dataframe
-   df1$year <- as.numeric(rownames(df1))
+   df1$year <- c(2016:2019) # as.numeric(rownames(df1))
    
    ggplot(data=df1, aes(x=year,y=mean.psi)) +
       geom_ribbon(data=df1, aes(x=year, ymin=lower.psi, ymax=upper.psi), fill="grey", alpha=0.8) +
@@ -157,6 +152,10 @@ occ.trends <- function() {
 
 occ.trends()
 
+# save as jpeg
+jpeg(here("results", "occ_trends.jpg"), width = 800, height = 400) # Open jpeg file
+occ.trends()
+dev.off()
 
 survival.trends <- function() {
    # extract mean psi
