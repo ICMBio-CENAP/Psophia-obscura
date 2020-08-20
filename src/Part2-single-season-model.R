@@ -60,6 +60,11 @@ sd.treeBurned <- sd(treeBurned[!is.na(treeBurned)])
 treeBurned <- (treeBurned-mean.treeBurned)/sd.treeBurned     # Standardise treeBurned
 treeBurned[is.na(treeBurned)] <- 0               # Impute zeroes (means)
 
+mean.basalArea <- mean(basalArea, na.rm = TRUE)
+sd.basalArea <- sd(basalArea[!is.na(basalArea)])
+basalArea <- (basalArea-mean.basalArea)/sd.basalArea     # Standardise basalArea
+basalArea[is.na(basalArea)] <- 0               # Impute zeroes (means)
+
 mean.treeDensity <- mean(treeDensity, na.rm = TRUE)
 sd.treeDensity <- sd(treeDensity[!is.na(treeDensity)])
 treeDensity <- (treeDensity-mean.treeDensity)/sd.treeDensity     # Standardise treeDensity
@@ -78,7 +83,8 @@ alpha.psi ~ dnorm(0, 0.01)
 beta1.psi ~ dnorm(0, 0.01) # dist.water
 beta2.psi ~ dnorm(0, 0.01) # elevation
 beta3.psi ~ dnorm(0, 0.01) # tree.density
-beta4.psi ~ dnorm(0, 0.01) # burned.trees
+beta4.psi ~ dnorm(0, 0.01) # basal.area
+beta5.psi ~ dnorm(0, 0.01) # burned.trees
 alpha.p ~ dnorm(0, 0.01)
 #beta1.p ~ dnorm(0, 0.01)
 #beta2.p ~ dnorm(0, 0.01)
@@ -91,7 +97,7 @@ for (i in 1:R) {
    z[i] ~ dbern(psi[i])                # True occurrence z at site i
    psi[i] <- 1 / (1 + exp(-lpsi.lim[i]))
    lpsi.lim[i] <- min(999, max(-999, lpsi[i]))
-   lpsi[i] <- alpha.psi + beta1.psi * distWater[i] + beta2.psi * elevation[i] + beta3.psi * treeDensity[i] + beta4.psi * treeBurned[i]
+   lpsi[i] <- alpha.psi + beta1.psi*distWater[i] + beta2.psi*elevation[i] + beta3.psi*treeDensity[i] + beta4.psi*basalArea[i] + beta5.psi*treeBurned[i]
 
    # Observation model for the observations
    for (j in 1:T) {
@@ -112,7 +118,7 @@ mean.p <- exp(alpha.p) / (1 + exp(alpha.p))    # Sort of average detection
 sink()
 
 # Bundle data
-dataJAGS <- list(y = y, R = nrow(y), T = ncol(y), distWater=distWater, elevation=elevation, treeDensity=treeDensity, treeBurned=treeBurned)
+dataJAGS <- list(y = y, R = nrow(y), T = ncol(y), distWater=distWater, elevation=elevation, treeDensity=treeDensity, basalArea=basalArea, treeBurned=treeBurned)
 
 # Initial values
 zst <- apply(y, 1, max, na.rm = TRUE)	# Good starting values crucial
@@ -120,7 +126,7 @@ zst[zst == -Inf] <- 0
 inits <- function(){list(z = zst, alpha.psi=runif(1, -3, 3), alpha.p = runif(1, -3, 3))}
 
 # Parameters monitored
-params <- c("alpha.psi", "beta1.psi", "beta2.psi", "beta3.psi", "beta4.psi", "mean.p", "occ.fs", "alpha.p", "z")
+params <- c("alpha.psi", "beta1.psi", "beta2.psi", "beta3.psi", "beta4.psi", "beta5.psi", "mean.p", "occ.fs", "alpha.p", "z")
 
 # MCMC settings
 ni <- 30000
@@ -140,18 +146,18 @@ hist(out$BUGSoutput$sims.list$occ.fs, nclass = 30, col = "gray", main = "", xlab
 
 
 # A template for a figure with effect of a covariate on occupancy with uncertainty:
-# Using elevation as a model
+# Using basal area as a model
 mcmc.sample <- out$BUGSoutput$n.sims
-original.treeDens <- SiteCovs[,7]
-original.treeDens.pred <- seq(min(original.treeDens), max(original.treeDens), length.out = 30)
-treeDens.pred <- (original.treeDens.pred - mean.treeDensity)/sd.treeDensity
-p.pred.treeDens <- rep(NA, length(treeDens.pred))
-for(i in 1:length(p.pred.treeDens)) {
-  p.pred.treeDens[i] <- plogis(out$BUGSoutput$mean$alpha.psi + out$BUGSoutput$mean$beta3.psi*treeDens.pred[i])
+original.basalArea <- SiteCovs[,6]
+original.basalArea.pred <- seq(min(original.basalArea), max(original.basalArea), length.out = 30)
+basalArea.pred <- (original.basalArea.pred - mean.basalArea)/sd.basalArea
+p.pred.basalArea <- rep(NA, length(basalArea.pred))
+for(i in 1:length(p.pred.basalArea)) {
+  p.pred.basalArea[i] <- plogis(out$BUGSoutput$mean$alpha.psi + out$BUGSoutput$mean$beta4.psi*basalArea.pred[i])
 }
-array.p.pred.treeDens <- array(NA, dim = c(length(treeDens.pred), mcmc.sample))
+array.p.pred.basalArea <- array(NA, dim = c(length(basalArea.pred), mcmc.sample))
 for (i in 1:mcmc.sample){
-  array.p.pred.treeDens[,i] <- plogis(out$BUGSoutput$sims.list$alpha.psi[i] + out$BUGSoutput$sims.list$beta3.psi[i]*treeDens.pred)
+  array.p.pred.basalArea[,i] <- plogis(out$BUGSoutput$sims.list$alpha.psi[i] + out$BUGSoutput$sims.list$beta4.psi[i]*basalArea.pred)
 }
 
 # Plot for a subsample of MCMC draws
@@ -159,17 +165,17 @@ for (i in 1:mcmc.sample){
 plot.test <- function() {
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   
-  plot(original.treeDens.pred, p.pred.treeDens, main = "", ylab = "Occupancy probability", xlab = "Tree density", ylim = c(0, 1), type = "l", lwd = 3, frame.plot = FALSE)
+  plot(original.basalArea.pred, p.pred.basalArea, main = "", ylab = "Occupancy probability", xlab = "Basal area", ylim = c(0, 1), type = "l", lwd = 3, las=1)#frame.plot = FALSE)
   for (i in sub.set){
-    lines(original.treeDens.pred, array.p.pred.treeDens[,i], type = "l", lwd = 1, col = "gray")
+    lines(original.basalArea.pred, array.p.pred.basalArea[,i], type = "l", lwd = 1, col = "gray")
   }
-  lines(original.treeDens.pred, p.pred.treeDens, type = "l", lwd = 3, col = "blue")
+  lines(original.basalArea.pred, p.pred.basalArea, type = "l", lwd = 3, col = "blue")
 }
 
 plot.test()
 
 # save as jpeg
-jpeg(here("results", "treeDensity_effect_test.jpg"), width = 800, height = 400) # Open jpeg file
+jpeg(here("results", "basalArea_effect_test.jpg"), width = 800, height = 400) # Open jpeg file
 plot.test()
 dev.off()
 
