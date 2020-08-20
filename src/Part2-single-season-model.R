@@ -165,7 +165,7 @@ for (i in 1:mcmc.sample){
 plot.test <- function() {
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   
-  plot(original.basalArea.pred, p.pred.basalArea, main = "", ylab = "Occupancy probability", xlab = "Basal area", ylim = c(0, 1), type = "l", lwd = 3, las=1)#frame.plot = FALSE)
+  plot(original.basalArea.pred, p.pred.basalArea, main = "", ylab = "Occupancy probability", xlab = "Basal area", cex.lab=1.2, cex.axis=1.2,  ylim = c(0, 1), type = "l", lwd = 3, las=1)#frame.plot = FALSE)
   for (i in sub.set){
     lines(original.basalArea.pred, array.p.pred.basalArea[,i], type = "l", lwd = 1, col = "gray")
   }
