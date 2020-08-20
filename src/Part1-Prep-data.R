@@ -156,11 +156,17 @@ trees <- read.csv(here("data", "tree_structure.csv"))
 ## create a single covariates dataframe
 covars <- merge(cover[,c(2,7)], dist.water[,3:4], by="Camera.Trap.Name")
 covars <- merge(covars, slope.elev[,2:4], by="Camera.Trap.Name")
-covars <- merge(covars, trees[,c(2,6,7)], by="Camera.Trap.Name")
+covars <- merge(covars, trees[,c(2,4,6,7)], by="Camera.Trap.Name")
 
 # merge 
 dataRBG_species_Psophia_obscura$Camera.Trap.Name <- rownames(dataRBG_species_Psophia_obscura)
+
+# create a separate 2017 dataset for single-season model
+Pobscura2017 <- dataRBG_species_Psophia_obscura[,c(45,12:22)]
+
+Pobscura2017 <- merge(Pobscura2017, covars, by="Camera.Trap.Name")
 Pobscura <- merge(dataRBG_species_Psophia_obscura, covars, by="Camera.Trap.Name")
 
 # Save to disk
+saveRDS(Pobscura2017, here("data","Pobscura2017.rds"))
 saveRDS(Pobscura, here("data","Pobscura.rds"))

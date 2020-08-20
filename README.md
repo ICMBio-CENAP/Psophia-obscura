@@ -16,6 +16,7 @@ Para artigo em preparação
 
 
 <img src="results/occ_trends.jpg" title="Occupancy trends" width="500">
+<img src="results/treeDensity_effect_test.jpg" title="Effect of tree density" width="500">
 
 # Contato
 Se tiver questões entre em contato com <elildojr@gmail.com>
