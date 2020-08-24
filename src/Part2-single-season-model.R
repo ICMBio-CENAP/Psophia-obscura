@@ -23,7 +23,7 @@ library(ggplot2)
 Pobscura2017 <- readRDS(here("data", "Pobscura2017.rds"))
 y <- Pobscura2017[,2:12]
 str(y)
-SiteCovs <- Pobscura2017[,13:19]
+SiteCovs <- Pobscura2017[,13:20]
 
 # check corr in SiteCovs
 cor(SiteCovs)
@@ -32,11 +32,12 @@ cor(SiteCovs)
 names(SiteCovs)
 landCover <- SiteCovs[,1]
 distWater <- SiteCovs[,2]
-slope <- SiteCovs[,3]
-elevation <- SiteCovs[,4]
-treeBurned <- SiteCovs[,5]
-basalArea <- SiteCovs[,6]
-treeDensity <- SiteCovs[,7]
+distEdge <- SiteCovs[,3]
+slope <- SiteCovs[,4]
+elevation <- SiteCovs[,5]
+treeBurned <- SiteCovs[,6]
+basalArea <- SiteCovs[,7]
+treeDensity <- SiteCovs[,8]
 
 
 # Standardize covariates
@@ -49,6 +50,11 @@ mean.distWater <- mean(distWater, na.rm = TRUE)
 sd.distWater <- sd(distWater[!is.na(distWater)])
 distWater <- (distWater-mean.distWater)/sd.distWater     # Standardise distWater
 distWater[is.na(distWater)] <- 0               # Impute zeroes (means)
+
+mean.distEdge <- mean(distEdge, na.rm = TRUE)
+sd.distEdge <- sd(distEdge[!is.na(distEdge)])
+distEdge <- (distEdge-mean.distEdge)/sd.distEdge     # Standardise distEdge
+distEdge[is.na(distEdge)] <- 0               # Impute zeroes (means)
 
 mean.elevation <- mean(elevation, na.rm = TRUE)
 sd.elevation <- sd(elevation[!is.na(elevation)])
@@ -80,9 +86,9 @@ model {
 
 # Priors
 alpha.psi ~ dnorm(0, 0.01)
-beta1.psi ~ dnorm(0, 0.01) # dist.water
-beta2.psi ~ dnorm(0, 0.01) # elevation
-beta3.psi ~ dnorm(0, 0.01) # tree.density
+beta1.psi ~ dnorm(0, 0.01) # dist.edge
+beta2.psi ~ dnorm(0, 0.01) # dist.water
+beta3.psi ~ dnorm(0, 0.01) # elevation
 beta4.psi ~ dnorm(0, 0.01) # basal.area
 beta5.psi ~ dnorm(0, 0.01) # burned.trees
 alpha.p ~ dnorm(0, 0.01)
@@ -97,7 +103,7 @@ for (i in 1:R) {
    z[i] ~ dbern(psi[i])                # True occurrence z at site i
    psi[i] <- 1 / (1 + exp(-lpsi.lim[i]))
    lpsi.lim[i] <- min(999, max(-999, lpsi[i]))
-   lpsi[i] <- alpha.psi + beta1.psi*distWater[i] + beta2.psi*elevation[i] + beta3.psi*treeDensity[i] + beta4.psi*basalArea[i] + beta5.psi*treeBurned[i]
+   lpsi[i] <- alpha.psi + beta1.psi*distEdge[i] + beta2.psi*distWater[i] + beta3.psi*elevation[i] + beta4.psi*basalArea[i] + beta5.psi*treeBurned[i]
 
    # Observation model for the observations
    for (j in 1:T) {
@@ -118,7 +124,7 @@ mean.p <- exp(alpha.p) / (1 + exp(alpha.p))    # Sort of average detection
 sink()
 
 # Bundle data
-dataJAGS <- list(y = y, R = nrow(y), T = ncol(y), distWater=distWater, elevation=elevation, treeDensity=treeDensity, basalArea=basalArea, treeBurned=treeBurned)
+dataJAGS <- list(y = y, R = nrow(y), T = ncol(y), distEdge=distEdge, distWater=distWater, elevation=elevation, basalArea=basalArea, treeBurned=treeBurned)
 
 # Initial values
 zst <- apply(y, 1, max, na.rm = TRUE)	# Good starting values crucial
@@ -145,10 +151,46 @@ hist(out$BUGSoutput$sims.list$occ.fs, nclass = 30, col = "gray", main = "", xlab
 #abline(v = 10, lwd = 2) # The observed number
 
 
-# A template for a figure with effect of a covariate on occupancy with uncertainty:
-# Using basal area as a model
+## Distance to water and basal area were significantly related to P. obscura occupancy
+## Plot the relationship between occupancy and these covariates with the associated uncertainty
+
+# Distance to water
 mcmc.sample <- out$BUGSoutput$n.sims
-original.basalArea <- SiteCovs[,6]
+original.distWater <- SiteCovs[,2]
+original.distWater.pred <- seq(min(original.distWater), max(original.distWater), length.out = 30)
+distWater.pred <- (original.distWater.pred - mean.distWater)/sd.distWater
+p.pred.distWater <- rep(NA, length(distWater.pred))
+for(i in 1:length(p.pred.distWater)) {
+  p.pred.distWater[i] <- plogis(out$BUGSoutput$mean$alpha.psi + out$BUGSoutput$mean$beta2.psi*distWater.pred[i])
+}
+array.p.pred.distWater <- array(NA, dim = c(length(distWater.pred), mcmc.sample))
+for (i in 1:mcmc.sample){
+  array.p.pred.distWater[,i] <- plogis(out$BUGSoutput$sims.list$alpha.psi[i] + out$BUGSoutput$sims.list$beta2.psi[i]*distWater.pred)
+}
+
+# Plot for a subsample of MCMC draws
+# write as a function:
+plot.distWater <- function() {
+  sub.set <- sort(sample(1:mcmc.sample, size = 200))
+  
+  plot(original.distWater.pred, p.pred.distWater, main = "", ylab = "Occupancy probability", xlab = "Distance to water (m)", cex.lab=1.2, cex.axis=1.2,  ylim = c(0, 1), type = "l", lwd = 3, las=1)#frame.plot = FALSE)
+  for (i in sub.set){
+    lines(original.distWater.pred, array.p.pred.distWater[,i], type = "l", lwd = 1, col = "gray")
+  }
+  lines(original.distWater.pred, p.pred.distWater, type = "l", lwd = 3, col = "blue")
+}
+
+plot.distWater()
+
+# save as jpeg
+jpeg(here("results", "distWater_effect.jpg"), width = 800, height = 400) # Open jpeg file
+plot.distWater()
+dev.off()
+
+
+# Basal area
+mcmc.sample <- out$BUGSoutput$n.sims
+original.basalArea <- SiteCovs[,7]
 original.basalArea.pred <- seq(min(original.basalArea), max(original.basalArea), length.out = 30)
 basalArea.pred <- (original.basalArea.pred - mean.basalArea)/sd.basalArea
 p.pred.basalArea <- rep(NA, length(basalArea.pred))
@@ -162,20 +204,20 @@ for (i in 1:mcmc.sample){
 
 # Plot for a subsample of MCMC draws
 # write as a function:
-plot.test <- function() {
+plot.basalArea <- function() {
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   
-  plot(original.basalArea.pred, p.pred.basalArea, main = "", ylab = "Occupancy probability", xlab = "Basal area", cex.lab=1.2, cex.axis=1.2,  ylim = c(0, 1), type = "l", lwd = 3, las=1)#frame.plot = FALSE)
+  plot(original.basalArea.pred, p.pred.basalArea, main = "", ylab = "Occupancy probability", xlab = "Basal area of trees (m2/ha)", cex.lab=1.2, cex.axis=1.2,  ylim = c(0, 1), type = "l", lwd = 3, las=1)#frame.plot = FALSE)
   for (i in sub.set){
     lines(original.basalArea.pred, array.p.pred.basalArea[,i], type = "l", lwd = 1, col = "gray")
   }
   lines(original.basalArea.pred, p.pred.basalArea, type = "l", lwd = 3, col = "blue")
 }
 
-plot.test()
+plot.basalArea()
 
 # save as jpeg
-jpeg(here("results", "basalArea_effect_test.jpg"), width = 800, height = 400) # Open jpeg file
-plot.test()
+jpeg(here("results", "basalArea_effect.jpg"), width = 800, height = 400) # Open jpeg file
+plot.basalArea()
 dev.off()
 
