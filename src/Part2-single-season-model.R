@@ -159,13 +159,13 @@ mcmc.sample <- out$BUGSoutput$n.sims
 original.distWater <- SiteCovs[,2]
 original.distWater.pred <- seq(min(original.distWater), max(original.distWater), length.out = 30)
 distWater.pred <- (original.distWater.pred - mean.distWater)/sd.distWater
-p.pred.distWater <- rep(NA, length(distWater.pred))
-for(i in 1:length(p.pred.distWater)) {
-  p.pred.distWater[i] <- plogis(out$BUGSoutput$mean$alpha.psi + out$BUGSoutput$mean$beta2.psi*distWater.pred[i])
+psi.pred.distWater <- rep(NA, length(distWater.pred))
+for(i in 1:length(psi.pred.distWater)) {
+  psi.pred.distWater[i] <- plogis(out$BUGSoutput$mean$alpha.psi + out$BUGSoutput$mean$beta2.psi*distWater.pred[i])
 }
-array.p.pred.distWater <- array(NA, dim = c(length(distWater.pred), mcmc.sample))
+array.psi.pred.distWater <- array(NA, dim = c(length(distWater.pred), mcmc.sample))
 for (i in 1:mcmc.sample){
-  array.p.pred.distWater[,i] <- plogis(out$BUGSoutput$sims.list$alpha.psi[i] + out$BUGSoutput$sims.list$beta2.psi[i]*distWater.pred)
+  array.psi.pred.distWater[,i] <- plogis(out$BUGSoutput$sims.list$alpha.psi[i] + out$BUGSoutput$sims.list$beta2.psi[i]*distWater.pred)
 }
 
 # Plot for a subsample of MCMC draws
@@ -173,11 +173,11 @@ for (i in 1:mcmc.sample){
 plot.distWater <- function() {
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   
-  plot(original.distWater.pred, p.pred.distWater, main = "", ylab = "Occupancy probability", xlab = "Distance to water (m)", cex.lab=1.2, cex.axis=1.2,  ylim = c(0, 1), type = "l", lwd = 3, las=1)#frame.plot = FALSE)
+  plot(original.distWater.pred, psi.pred.distWater, main = "", ylab = "Occupancy probability", xlab = "Distance to water (m)", cex.lab=1.2, cex.axis=1.2,  ylim = c(0, 1), type = "l", lwd = 3, las=1)#frame.plot = FALSE)
   for (i in sub.set){
-    lines(original.distWater.pred, array.p.pred.distWater[,i], type = "l", lwd = 1, col = "gray")
+    lines(original.distWater.pred, array.psi.pred.distWater[,i], type = "l", lwd = 1, col = "gray")
   }
-  lines(original.distWater.pred, p.pred.distWater, type = "l", lwd = 3, col = "blue")
+  lines(original.distWater.pred, psi.pred.distWater, type = "l", lwd = 3, col = "blue")
 }
 
 plot.distWater()
@@ -193,13 +193,13 @@ mcmc.sample <- out$BUGSoutput$n.sims
 original.basalArea <- SiteCovs[,7]
 original.basalArea.pred <- seq(min(original.basalArea), max(original.basalArea), length.out = 30)
 basalArea.pred <- (original.basalArea.pred - mean.basalArea)/sd.basalArea
-p.pred.basalArea <- rep(NA, length(basalArea.pred))
-for(i in 1:length(p.pred.basalArea)) {
-  p.pred.basalArea[i] <- plogis(out$BUGSoutput$mean$alpha.psi + out$BUGSoutput$mean$beta4.psi*basalArea.pred[i])
+psi.pred.basalArea <- rep(NA, length(basalArea.pred))
+for(i in 1:length(psi.pred.basalArea)) {
+  psi.pred.basalArea[i] <- plogis(out$BUGSoutput$mean$alpha.psi + out$BUGSoutput$mean$beta4.psi*basalArea.pred[i])
 }
-array.p.pred.basalArea <- array(NA, dim = c(length(basalArea.pred), mcmc.sample))
+array.psi.pred.basalArea <- array(NA, dim = c(length(basalArea.pred), mcmc.sample))
 for (i in 1:mcmc.sample){
-  array.p.pred.basalArea[,i] <- plogis(out$BUGSoutput$sims.list$alpha.psi[i] + out$BUGSoutput$sims.list$beta4.psi[i]*basalArea.pred)
+  array.psi.pred.basalArea[,i] <- plogis(out$BUGSoutput$sims.list$alpha.psi[i] + out$BUGSoutput$sims.list$beta4.psi[i]*basalArea.pred)
 }
 
 # Plot for a subsample of MCMC draws
@@ -207,11 +207,11 @@ for (i in 1:mcmc.sample){
 plot.basalArea <- function() {
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   
-  plot(original.basalArea.pred, p.pred.basalArea, main = "", ylab = "Occupancy probability", xlab = "Basal area of trees (m2/ha)", cex.lab=1.2, cex.axis=1.2,  ylim = c(0, 1), type = "l", lwd = 3, las=1)#frame.plot = FALSE)
+  plot(original.basalArea.pred, psi.pred.basalArea, main = "", ylab = "Occupancy probability", xlab = "Basal area of trees (m2/ha)", cex.lab=1.2, cex.axis=1.2,  ylim = c(0, 1), type = "l", lwd = 3, las=1)#frame.plot = FALSE)
   for (i in sub.set){
-    lines(original.basalArea.pred, array.p.pred.basalArea[,i], type = "l", lwd = 1, col = "gray")
+    lines(original.basalArea.pred, array.psi.pred.basalArea[,i], type = "l", lwd = 1, col = "gray")
   }
-  lines(original.basalArea.pred, p.pred.basalArea, type = "l", lwd = 3, col = "blue")
+  lines(original.basalArea.pred, psi.pred.basalArea, type = "l", lwd = 3, col = "blue")
 }
 
 plot.basalArea()
