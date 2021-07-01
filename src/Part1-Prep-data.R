@@ -150,7 +150,7 @@ dist.water <- dist.water[,c("Camera.Trap.Name", "dist.water")]
 head(dist.water)
 
 # Distance to forest edge
-dist.edge1 <- read.csv(here("data", "dist_to_edge.csv"))
+dist.edge <- read.csv(here("data", "dist_to_edge.csv"))
 names(dist.edge) <- c("Camera.Trap.Name", "dist.edge")
 dist.edge$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", dist.edge$Camera.Trap.Name)
 dist.edge$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", dist.edge$Camera.Trap.Name)
@@ -176,11 +176,9 @@ elev <- elev[,c("Camera.Trap.Name", "elevation")]
 head(elev)
 
 # tree structure
-trees <- read.csv(here("data", "tree_structure.csv"))
+trees <- read.csv(here("data", "trees.csv"))
 head(trees)
-hist(trees$basal.area)
-hist(log(trees$basal.area))
-sort(trees$basal.area)
+trees <- trees[,c("Camera.Trap.Name", "basal.area", "density")]
 
 # camera array (block)
 block <- read.csv(here("data", "blocos.csv"))
@@ -196,7 +194,7 @@ head(block)
 covars <- merge(cover, dist.water, by="Camera.Trap.Name")
 covars <- merge(covars, dist.edge, by="Camera.Trap.Name")
 covars <- merge(covars, elev, by="Camera.Trap.Name")
-covars <- merge(covars, trees[,c("Camera.Trap.Name", "basal.area", "tree.density")], by="Camera.Trap.Name")
+covars <- merge(covars, trees[,c("Camera.Trap.Name", "basal.area", "density")], by="Camera.Trap.Name")
 covars <- merge(covars, block, by="Camera.Trap.Name")
 head(covars)
 

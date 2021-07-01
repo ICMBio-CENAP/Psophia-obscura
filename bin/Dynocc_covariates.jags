@@ -1,57 +1,64 @@
 
 model {
 
-# Specify priors
-psi1 ~ dunif(0, 1)
-for (k in 1:(nyear-1)){
-   phi[k] ~ dunif(0, 1)
-   gamma[k] ~ dunif(0, 1)
-   p[k] ~ dunif(0, 1) 
-   }
-p[nyear] ~ dunif(0, 1)
+  ## Priors
+  
+  for (k in 1:(nyear-1)){
+    phi[k] ~ dunif(0, 1)
+    gamma[k] ~ dunif(0, 1)
+    p[k] ~ dunif(0, 1) 
+  }
+  p[nyear] ~ dunif(0, 1)
+  
+  # random site effects for p
+  #for (i in 1:nsite){
+  #  alpha.p.site[i] ~ dnorm(mu.site, tau.site)
+  #} #i
+  #mu.site ~ dnorm(0, 0.5)
+  #tau.site <- 1/(sd.site*sd.site)
+  #sd.site ~ dunif(0,5)
+   
+  # psi intercept
+  alpha.psi ~ dnorm(0, 0.01)
+  
+  # effects (betas)
+  for (j in 1:4) {
+      beta[j] ~ dnorm(0, 0.01)
+  }
 
-alpha.psi ~ dnorm(0, 0.01)
-a1 ~ dnorm(0, 0.01) # elevation
-a2 ~ dnorm(0, 0.01) # edge
-a3 ~ dnorm(0, 0.01) # water
-a4 ~ dnorm(0, 0.01) # basal.area
-alpha.p ~ dnorm(0, 0.01)
-#b1 ~ dnorm(0, 0.01)
-#b2 ~ dnorm(0, 0.01)
-#b3 ~ dnorm(0, 0.01)
-#b4 ~ dnorm(0, 0.01)
+  ## Ecological model: state conditional on parameters
+  for (i in 1:nsite){
+    logit(psi[i,1]) <- alpha.psi + beta[1]*elevation[i] + beta[2]*distEdge[i] + beta[3]*distWater[i] + beta[4]*basalArea[i]
+    z[i,1] ~ dbern(psi[i,1])
 
-# Ecological submodel: Define state conditional on parameters
-for (i in 1:nsite){
-   z[i,1] ~ dbern(psi1[i,1])
-   psi[i,1] <- 1 / (1 + exp(-lpsi.lim[i,1]))
-   lpsi.lim[i,1] <- min(999, max(-999, lpsi[i,1]))
-   lpsi[i,1] <- alpha.psi + a1*elevation[i] + a2*distEdge[i] + a3*distWater[i] + a4*basalArea[i]
-
-   for (k in 2:nyear){
+    for (k in 2:nyear){
       muZ[i,k]<- z[i,k-1]*phi[k-1] + (1-z[i,k-1])*gamma[k-1]
       z[i,k] ~ dbern(muZ[i,k])
       } #k
    } #i
-
-# Observation model
-for (i in 1:nsite){
-   for (j in 1:nrep){
-      for (k in 1:nyear){
-         muy[i,j,k] <- z[i,k]*p[k]
+   
+   ## Observation model
+   for (i in 1:nsite){
+     for (j in 1:nrep){
+       for (k in 1:nyear){
+         #logit(p[i,j,k]) <- alpha.p.site[i]
+         #muy[i,j,k] <- z[i,k]*p[i,j,k]  # can only be detected if z=1
+         muy[i,j,k] <- z[i,k]*p[k]  # can only be detected if z=1
          y[i,j,k] ~ dbern(muy[i,j,k])
          } #k
-      } #j
+     } #j
    } #i
-
-# Derived parameters: Sample and population occupancy, growth rate and turnover
-psi[1] <- psi1
-n.occ[1]<-sum(z[1:nsite,1])
-for (k in 2:nyear){
-   psi[k] <- psi[k-1]*phi[k-1] + (1-psi[k-1])*gamma[k-1]
-   n.occ[k] <- sum(z[1:nsite,k])
-   growthr[k-1] <- psi[k]/psi[k-1]                         # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
-   turnover[k-1] <- (1 - psi[k-1]) * gamma[k-1]/psi[k]
-   }
+   
+   # Derived parameters: Sample and population occupancy, growth rate and turnover
+   #n.occ[1] <- sum(z[1:nsite,1])
+   #  psi[i,1] <- psi[i,1]
+   for (i in 1:nsite){
+     for (k in 2:nyear){
+       psi[i,k] <- psi[i,k-1]*phi[k-1] + (1-psi[i,k-1])*gamma[k-1]
+       #n.occ[k] <- sum(z[1:nsite,k])
+       growthr[i,k-1] <- psi[i,k]/psi[i,k-1]  # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
+       turnover[i,k-1] <- (1 - psi[i,k-1]) * gamma[k-1]/psi[i,k]
+     } # k
+    } #i
 }
 

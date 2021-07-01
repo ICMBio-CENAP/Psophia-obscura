@@ -1,6 +1,5 @@
-
-# EM CONSTRUCAO!!!!
-# FALTA ADAPTAR O MODELO
+# Based on book BPA with WinBUGS
+# Codes from site BPA with JAGS
 
 # J. Andrew Royle and Marc Kéry. 2007. A Bayesian state-space formulation of dynamic occupancy models. Ecology 88:1813–1823.
 # Supplement
@@ -21,6 +20,7 @@
 #library(dplyr)
 #library(lubridate)
 library(here)
+library(tidyverse)
 library(R2jags)
 library(rjags)
 library(ggplot2)
@@ -29,7 +29,7 @@ library(ggplot2)
 #source(here("bin", "ahumada_codes.R"))
 #source(here("bin", "f-matrix-creator-experimental-probably-ok-but-need-check.R"))
 #source(here("src", "fix_species_names.R")) # fix some names and remove "false" species
-
+source(here("bin", "figures.R"))
 
 #----- 3 - Read and prepare data -----
 
@@ -44,12 +44,12 @@ K <- dim(y)[3]
 
 SiteCovs <- pobscura[,42:48]
 names(SiteCovs)
-landCover <- SiteCovs[,1]
-distWater <- SiteCovs[,2]
-distEdge <- SiteCovs[,3]
-elevation <- SiteCovs[,4]
-basalArea <- SiteCovs[,5]
-treeDensity <- SiteCovs[,6]
+original.landCover <- SiteCovs[,1]
+original.distWater <- SiteCovs[,2]#/1000 # convert from metres to km
+original.distEdge <- SiteCovs[,3]#/1000 # convert from metres to km
+original.elevation <- SiteCovs[,4]
+original.basalArea <- SiteCovs[,5]
+original.treeDensity <- SiteCovs[,6]
 block <- SiteCovs[,7]
 
 # check corr in SiteCovs
@@ -58,6 +58,7 @@ covars_correlations
 write.csv(covars_correlations, here("results", "covars_correlations.csv"), row.names=FALSE)
 
 # Standardize covariates
+landCover <- original.landCover
 mean.landCover <- mean(landCover, na.rm = TRUE)
 sd.landCover <- sd(landCover[!is.na(landCover)])
 landCover <- (landCover-mean.landCover)/sd.landCover     # Standardise landCover
@@ -65,6 +66,7 @@ landCover[is.na(landCover)] <- 0               # Impute zeroes (means)
 landCover <- round(landCover, 2)
 landCover
 
+distWater <- original.distWater
 mean.distWater <- mean(distWater, na.rm = TRUE)
 sd.distWater <- sd(distWater[!is.na(distWater)])
 distWater <- (distWater-mean.distWater)/sd.distWater     # Standardise distWater
@@ -72,6 +74,7 @@ distWater[is.na(distWater)] <- 0               # Impute zeroes (means)
 distWater <- round(distWater, 2)
 distWater
 
+distEdge <- original.distEdge
 mean.distEdge <- mean(distEdge, na.rm = TRUE)
 sd.distEdge <- sd(distEdge[!is.na(distEdge)])
 distEdge <- (distEdge-mean.distEdge)/sd.distEdge     # Standardise distEdge
@@ -79,6 +82,7 @@ distEdge[is.na(distEdge)] <- 0               # Impute zeroes (means)
 distEdge <- round(distEdge, 2)
 distEdge
 
+elevation <- original.elevation
 mean.elevation <- mean(elevation, na.rm = TRUE)
 sd.elevation <- sd(elevation[!is.na(elevation)])
 elevation <- (elevation-mean.elevation)/sd.elevation     # Standardise elevation
@@ -86,6 +90,7 @@ elevation[is.na(elevation)] <- 0               # Impute zeroes (means)
 elevation <- round(elevation, 2)
 elevation
 
+basalArea <- original.basalArea
 mean.basalArea <- mean(basalArea, na.rm = TRUE)
 sd.basalArea <- sd(basalArea[!is.na(basalArea)])
 basalArea <- (basalArea-mean.basalArea)/sd.basalArea     # Standardise basalArea
@@ -93,6 +98,7 @@ basalArea[is.na(basalArea)] <- 0               # Impute zeroes (means)
 basalArea <- round(basalArea, 2)
 basalArea
 
+treeDensity <- original.treeDensity
 mean.treeDensity <- mean(treeDensity, na.rm = TRUE)
 sd.treeDensity <- sd(treeDensity[!is.na(treeDensity)])
 treeDensity <- (treeDensity-mean.treeDensity)/sd.treeDensity     # Standardise treeDensity
@@ -100,162 +106,79 @@ treeDensity[is.na(treeDensity)] <- 0               # Impute zeroes (means)
 treeDensity <- round(treeDensity, 2)
 treeDensity
 
-
-#----- 4 - Dynamic occupancy model without covariates -----
-
-# Specify model in BUGS language
-sink(here("bin", "Dynocc.jags"))
-cat("
-model {
-
-# Specify priors
-psi1 ~ dunif(0, 1)
-for (k in 1:(nyear-1)){
-   phi[k] ~ dunif(0, 1)
-   gamma[k] ~ dunif(0, 1)
-   p[k] ~ dunif(0, 1) 
-   }
-p[nyear] ~ dunif(0, 1)
-
-# Ecological submodel: Define state conditional on parameters
-for (i in 1:nsite){
-   z[i,1] ~ dbern(psi1)
-   for (k in 2:nyear){
-      muZ[i,k]<- z[i,k-1]*phi[k-1] + (1-z[i,k-1])*gamma[k-1]
-      z[i,k] ~ dbern(muZ[i,k])
-      } #k
-   } #i
-
-# Observation model
-for (i in 1:nsite){
-   for (j in 1:nrep){
-      for (k in 1:nyear){
-         muy[i,j,k] <- z[i,k]*p[k]
-         y[i,j,k] ~ dbern(muy[i,j,k])
-         } #k
-      } #j
-   } #i
-
-# Derived parameters: Sample and population occupancy, growth rate and turnover
-psi[1] <- psi1
-n.occ[1]<-sum(z[1:nsite,1])
-for (k in 2:nyear){
-   psi[k] <- psi[k-1]*phi[k-1] + (1-psi[k-1])*gamma[k-1]
-   n.occ[k] <- sum(z[1:nsite,k])
-   growthr[k-1] <- psi[k]/psi[k-1]                         # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
-   turnover[k-1] <- (1 - psi[k-1]) * gamma[k-1]/psi[k]
-   }
-}
-",fill = TRUE)
-sink()
-
-# Bundle data
-jags.data <- list(y = y, nsite = dim(y)[1], nrep = dim(y)[2], nyear = dim(y)[3])
-
-# Initial values
-zst <- apply(y, c(1, 3), max)	# Observed occurrence as inits for z
-inits <- function(){ 
-  zst[is.na(zst)] <- 1 # NAs will result in error (node inconsistent with parents)
-  list(z = zst)
-  }
-
-# Parameters monitored
-params <- c("psi", "phi", "gamma", "p", "n.occ", "growthr", "turnover") 
-
-
-# MCMC settings
-ni <- 2500
-nt <- 4
-nb <- 500
-nc <- 3
-
-# Call JAGS from R (BRT 3 min)
-out <- jags(jags.data, inits, params, here("bin", "Dynocc.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-
-
-# Summarize posteriors
-print(out, dig = 2)
-psiall <- paste("psi[", 1:K, "]", sep="")
-print(out$BUGSoutput$summary[psiall, c(1, 2, 3, 7)], dig = 3)
-phiall <- paste("phi[", 1:(K-1), "]", sep="")
-print(out$BUGSoutput$summary[phiall, c(1, 2, 3, 7)], dig = 3)
-gammaall <- paste("gamma[", 1:(K-1), "]", sep="")
-print(out$BUGSoutput$summary[gammaall, c(1, 2, 3, 7)], dig = 3)
-pall <- paste("p[", 1:K, "]", sep="")
-print(out$BUGSoutput$summary[pall, c(1, 2, 3, 7)], dig = 3)
-
-plot(1:K, out$BUGSoutput$mean$psi, type = "l", xlab = "Year", ylab = "Occupancy probability", col = "red", xlim = c(0,K+1), ylim = c(0,1), lwd = 2, lty = 1, frame.plot = FALSE, las = 1)
-#lines(1:K, data$psi.app, type = "l", col = "black", lwd = 2)
-#points(1:K, out$BUGSoutput$mean$psi, type = "l", col = "blue", lwd = 2)
-segments(1:K, out$BUGSoutput$summary[psiall,3], 1:K, out$BUGSoutput$summary[psiall,7], col = "blue", lwd = 1)
-
-
-
-#----- 5 - Dynamic occupancy model with covariates -----
+#----- 4 - Dynamic occupancy model with covariates -----
 
 # Specify model in BUGS language
 sink(here("bin", "Dynocc_covariates.jags"))
 cat("
 model {
 
-# Specify priors
-psi1 ~ dunif(0, 1)
-for (k in 1:(nyear-1)){
-   phi[k] ~ dunif(0, 1)
-   gamma[k] ~ dunif(0, 1)
-   p[k] ~ dunif(0, 1) 
-   }
-p[nyear] ~ dunif(0, 1)
+  ## Priors
+  
+  for (k in 1:(nyear-1)){
+    phi[k] ~ dunif(0, 1)
+    gamma[k] ~ dunif(0, 1)
+    p[k] ~ dunif(0, 1) 
+  }
+  p[nyear] ~ dunif(0, 1)
+  
+  # random site effects for p
+  #for (i in 1:nsite){
+  #  alpha.p.site[i] ~ dnorm(mu.site, tau.site)
+  #} #i
+  #mu.site ~ dnorm(0, 0.5)
+  #tau.site <- 1/(sd.site*sd.site)
+  #sd.site ~ dunif(0,5)
+   
+  # psi intercept
+  alpha.psi ~ dnorm(0, 0.01)
+  
+  # effects (betas)
+  for (j in 1:4) {
+      beta[j] ~ dnorm(0, 0.01)
+  }
 
-alpha.psi ~ dnorm(0, 0.01)
-a1 ~ dnorm(0, 0.01) # elevation
-a2 ~ dnorm(0, 0.01) # edge
-a3 ~ dnorm(0, 0.01) # water
-a4 ~ dnorm(0, 0.01) # basal.area
-alpha.p ~ dnorm(0, 0.01)
-#b1 ~ dnorm(0, 0.01)
-#b2 ~ dnorm(0, 0.01)
-#b3 ~ dnorm(0, 0.01)
-#b4 ~ dnorm(0, 0.01)
+  ## Ecological model: state conditional on parameters
+  for (i in 1:nsite){
+    logit(psi[i,1]) <- alpha.psi + beta[1]*elevation[i] + beta[2]*distEdge[i] + beta[3]*distWater[i] + beta[4]*basalArea[i]
+    z[i,1] ~ dbern(psi[i,1])
 
-# Ecological submodel: Define state conditional on parameters
-for (i in 1:nsite){
-   z[i,1] ~ dbern(psi1[i,1])
-   psi[i,1] <- 1 / (1 + exp(-lpsi.lim[i,1]))
-   lpsi.lim[i,1] <- min(999, max(-999, lpsi[i,1]))
-   lpsi[i,1] <- alpha.psi + a1*elevation[i] + a2*distEdge[i] + a3*distWater[i] + a4*basalArea[i]
-
-   for (k in 2:nyear){
+    for (k in 2:nyear){
       muZ[i,k]<- z[i,k-1]*phi[k-1] + (1-z[i,k-1])*gamma[k-1]
       z[i,k] ~ dbern(muZ[i,k])
       } #k
    } #i
-
-# Observation model
-for (i in 1:nsite){
-   for (j in 1:nrep){
-      for (k in 1:nyear){
-         muy[i,j,k] <- z[i,k]*p[k]
+   
+   ## Observation model
+   for (i in 1:nsite){
+     for (j in 1:nrep){
+       for (k in 1:nyear){
+         #logit(p[i,j,k]) <- alpha.p.site[i]
+         #muy[i,j,k] <- z[i,k]*p[i,j,k]  # can only be detected if z=1
+         muy[i,j,k] <- z[i,k]*p[k]  # can only be detected if z=1
          y[i,j,k] ~ dbern(muy[i,j,k])
          } #k
-      } #j
+     } #j
    } #i
-
-# Derived parameters: Sample and population occupancy, growth rate and turnover
-psi[1] <- psi1
-n.occ[1]<-sum(z[1:nsite,1])
-for (k in 2:nyear){
-   psi[k] <- psi[k-1]*phi[k-1] + (1-psi[k-1])*gamma[k-1]
-   n.occ[k] <- sum(z[1:nsite,k])
-   growthr[k-1] <- psi[k]/psi[k-1]                         # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
-   turnover[k-1] <- (1 - psi[k-1]) * gamma[k-1]/psi[k]
-   }
+   
+   # Derived parameters: Sample and population occupancy, growth rate and turnover
+   #n.occ[1] <- sum(z[1:nsite,1])
+   #  psi[i,1] <- psi[i,1]
+   for (i in 1:nsite){
+     for (k in 2:nyear){
+       psi[i,k] <- psi[i,k-1]*phi[k-1] + (1-psi[i,k-1])*gamma[k-1]
+       #n.occ[k] <- sum(z[1:nsite,k])
+       growthr[i,k-1] <- psi[i,k]/psi[i,k-1]  # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
+       turnover[i,k-1] <- (1 - psi[i,k-1]) * gamma[k-1]/psi[i,k]
+     } # k
+    } #i
 }
 ",fill = TRUE)
 sink()
 
 # Bundle data
-jags.data <- list(y = y, nsite = dim(y)[1], nrep = dim(y)[2], nyear = dim(y)[3])
+jags.data <- list(y = y, nsite = dim(y)[1], nrep = dim(y)[2], nyear = dim(y)[3],
+                  elevation=elevation, distEdge=distEdge, distWater=distWater, basalArea=basalArea)
 
 # Initial values
 zst <- apply(y, c(1, 3), max)	# Observed occurrence as inits for z
@@ -265,24 +188,28 @@ inits <- function(){
 }
 
 # Parameters monitored
-params <- c("psi", "phi", "gamma", "p", "n.occ", "growthr", "turnover",
-            "alpha", "a1", "a2", "a3", "a4") 
+params <- c(#"psi", "phi", "gamma", "p", "n.occ", "growthr", "turnover",
+            "psi", "phi", "gamma", "p", "growthr", "turnover",
+            "alpha.psi", "beta") 
 
 
 # MCMC settings
-ni <- 2500
-nt <- 4
-nb <- 500
+ni <- 50000
+nt <- 100
+nb <- 2500
 nc <- 3
 
 # Call JAGS from R (BRT 3 min)
 out <- jags(jags.data, inits, params, here("bin", "Dynocc_covariates.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
 
+saveRDS(out, here("results", "pobscura_model.rds"))
 
 # Summarize posteriors
 print(out, dig = 2)
-psiall <- paste("psi[", 1:K, "]", sep="")
-print(out$BUGSoutput$summary[psiall, c(1, 2, 3, 7)], dig = 3)
+# psi now has one more dimension so original code doesnt work
+# however the code still works for phi, gamma and p:
+#psiall <- paste("psi[", 1:K, "]", sep="")
+#print(out$BUGSoutput$summary[psiall, c(1, 2, 3, 7)], dig = 3)
 phiall <- paste("phi[", 1:(K-1), "]", sep="")
 print(out$BUGSoutput$summary[phiall, c(1, 2, 3, 7)], dig = 3)
 gammaall <- paste("gamma[", 1:(K-1), "]", sep="")
@@ -290,10 +217,81 @@ print(out$BUGSoutput$summary[gammaall, c(1, 2, 3, 7)], dig = 3)
 pall <- paste("p[", 1:K, "]", sep="")
 print(out$BUGSoutput$summary[pall, c(1, 2, 3, 7)], dig = 3)
 
-plot(1:K, out$BUGSoutput$mean$psi, type = "l", xlab = "Year", ylab = "Occupancy probability", col = "red", xlim = c(0,K+1), ylim = c(0,1), lwd = 2, lty = 1, frame.plot = FALSE, las = 1)
-#lines(1:K, data$psi.app, type = "l", col = "black", lwd = 2)
-#points(1:K, out$BUGSoutput$mean$psi, type = "l", col = "blue", lwd = 2)
-segments(1:K, out$BUGSoutput$summary[psiall,3], 1:K, out$BUGSoutput$summary[psiall,7], col = "blue", lwd = 1)
+#plot(1:K, out$BUGSoutput$mean$psi, type = "l", xlab = "Year", ylab = "Occupancy probability", col = "red", xlim = c(0,K+1), ylim = c(0,1), lwd = 2, lty = 1, frame.plot = FALSE, las = 1)
+#segments(1:K, out$BUGSoutput$summary[psiall,3], 1:K, out$BUGSoutput$summary[psiall,7], col = "blue", lwd = 1)
+
+
+# check convergence
+hist(out$BUGSoutput$summary[,"Rhat"], nclass=8, main="Rhat", xlab="", las=1)
+summary(out$BUGSoutput$summary[,"Rhat"])
+
+# which parameters did not converged well?
+out$BUGSoutput$summary[which(out$BUGSoutput$summary[,"Rhat"] > 1.1),]
+
+# Evaluate fit
+# bayesian p-values is the proportion of points above the 1:1 line of equality
+# bayesian p-values close to zero or one are suspicious, we've got 0.58 which is a good fit!
+# ADD CODE
+
+# coefficients 
+coef.function <- function(x) {
+  coefs <- data.frame(x$BUGSoutput$summary[c("beta[1]", "beta[2]", "beta[3]", "beta[4]"),]) 
+  coefs <- tibble(predictor=c("elevation", "edges", "water", "basal.area"),
+                  coeff=row.names(coefs), mean=coefs$mean, lower=coefs$X2.5., upper=coefs$X97.5.,
+                  Rhat=coefs$Rhat, n.eff=coefs$n.eff)
+  #inds <- data.frame(x$BUGSoutput$summary[c("w[1]", "w[2]", "w[3]", "w[4]", "w[5]", "w[6]"),]) # w
+  #inds <- tibble(w.mean=inds$mean)
+  #coefs <- bind_cols(coefs, inds)
+  .GlobalEnv$coefs <- coefs
+  coefs
+}
+coef.function(out)
+
+
+# table summarizing model parameters
+parameters.table <- function(x) {
+  parameters_table <- tibble(parameter=c("psi", "p", "phi", "gamma"),
+                             mean=c(round(mean(x$BUGSoutput$sims.list$psi), 2),
+                                    round(mean(x$BUGSoutput$sims.list$p), 2),
+                                    round(mean(x$BUGSoutput$sims.list$phi), 2),
+                                    round(mean(x$BUGSoutput$sims.list$gamma), 2) ),
+                             lower=c(round(quantile(x$BUGSoutput$sims.list$psi, probs=0.025), 3),
+                                     round(quantile(x$BUGSoutput$sims.list$p, probs=0.025), 3),
+                                     round(quantile(x$BUGSoutput$sims.list$phi, probs=0.025), 3),
+                                     round(quantile(x$BUGSoutput$sims.list$gamma, probs=0.025), 3) ),
+                             upper= c(round(quantile(x$BUGSoutput$sims.list$psi, probs=0.975), 3),
+                                      round(quantile(x$BUGSoutput$sims.list$p, probs=0.975), 3),
+                                      round(quantile(x$BUGSoutput$sims.list$phi, probs=0.975), 3),
+                                      round(quantile(x$BUGSoutput$sims.list$gamma, probs=0.975), 3) ) )
+  parameters_table <- data.frame(parameters_table)
+  parameters_table
+}
+
+parameters.table(out)
+
+# Figures
+
+# template save as jpeg:
+#jpeg(here("results", "basalArea_effect.jpg"), width = 800, height = 400) # Open jpeg file
+#plot.basalArea()
+#dev.off()
+
+
+Fig_effects(out)
+
+dev.off()
+
+predictor.effects(out, original.elevation, 1)
+mtext("Elevation (m)", side=1, line=3)
+
+predictor.effects(out, original.distEdge, 2)
+mtext("Distance to edge (m)", side=1, line=3)
+
+predictor.effects(out, original.distWater, 3)
+mtext("Distance to water (m)", side=1, line=3)
+
+predictor.effects(out, original.basalArea, 4)
+mtext("Basal area (m²/ha)", side=1, line=3)
 
 
 
