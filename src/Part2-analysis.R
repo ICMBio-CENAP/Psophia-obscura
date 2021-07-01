@@ -38,6 +38,10 @@ names(pobscura)
 y <- array(c(unlist(pobscura[,2:11]), unlist(pobscura[,12:21]), unlist(pobscura[,22:31]), unlist(pobscura[,32:41])), c(61, 10, 4))
 str(y)
 
+R <- dim(y)[1]
+J <- dim(y)[2]
+K <- dim(y)[3]
+
 SiteCovs <- pobscura[,42:48]
 names(SiteCovs)
 landCover <- SiteCovs[,1]
@@ -97,6 +101,203 @@ treeDensity <- round(treeDensity, 2)
 treeDensity
 
 
+#----- 4 - Dynamic occupancy model without covariates -----
+
+# Specify model in BUGS language
+sink(here("bin", "Dynocc.jags"))
+cat("
+model {
+
+# Specify priors
+psi1 ~ dunif(0, 1)
+for (k in 1:(nyear-1)){
+   phi[k] ~ dunif(0, 1)
+   gamma[k] ~ dunif(0, 1)
+   p[k] ~ dunif(0, 1) 
+   }
+p[nyear] ~ dunif(0, 1)
+
+# Ecological submodel: Define state conditional on parameters
+for (i in 1:nsite){
+   z[i,1] ~ dbern(psi1)
+   for (k in 2:nyear){
+      muZ[i,k]<- z[i,k-1]*phi[k-1] + (1-z[i,k-1])*gamma[k-1]
+      z[i,k] ~ dbern(muZ[i,k])
+      } #k
+   } #i
+
+# Observation model
+for (i in 1:nsite){
+   for (j in 1:nrep){
+      for (k in 1:nyear){
+         muy[i,j,k] <- z[i,k]*p[k]
+         y[i,j,k] ~ dbern(muy[i,j,k])
+         } #k
+      } #j
+   } #i
+
+# Derived parameters: Sample and population occupancy, growth rate and turnover
+psi[1] <- psi1
+n.occ[1]<-sum(z[1:nsite,1])
+for (k in 2:nyear){
+   psi[k] <- psi[k-1]*phi[k-1] + (1-psi[k-1])*gamma[k-1]
+   n.occ[k] <- sum(z[1:nsite,k])
+   growthr[k-1] <- psi[k]/psi[k-1]                         # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
+   turnover[k-1] <- (1 - psi[k-1]) * gamma[k-1]/psi[k]
+   }
+}
+",fill = TRUE)
+sink()
+
+# Bundle data
+jags.data <- list(y = y, nsite = dim(y)[1], nrep = dim(y)[2], nyear = dim(y)[3])
+
+# Initial values
+zst <- apply(y, c(1, 3), max)	# Observed occurrence as inits for z
+inits <- function(){ 
+  zst[is.na(zst)] <- 1 # NAs will result in error (node inconsistent with parents)
+  list(z = zst)
+  }
+
+# Parameters monitored
+params <- c("psi", "phi", "gamma", "p", "n.occ", "growthr", "turnover") 
+
+
+# MCMC settings
+ni <- 2500
+nt <- 4
+nb <- 500
+nc <- 3
+
+# Call JAGS from R (BRT 3 min)
+out <- jags(jags.data, inits, params, here("bin", "Dynocc.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+
+
+# Summarize posteriors
+print(out, dig = 2)
+psiall <- paste("psi[", 1:K, "]", sep="")
+print(out$BUGSoutput$summary[psiall, c(1, 2, 3, 7)], dig = 3)
+phiall <- paste("phi[", 1:(K-1), "]", sep="")
+print(out$BUGSoutput$summary[phiall, c(1, 2, 3, 7)], dig = 3)
+gammaall <- paste("gamma[", 1:(K-1), "]", sep="")
+print(out$BUGSoutput$summary[gammaall, c(1, 2, 3, 7)], dig = 3)
+pall <- paste("p[", 1:K, "]", sep="")
+print(out$BUGSoutput$summary[pall, c(1, 2, 3, 7)], dig = 3)
+
+plot(1:K, out$BUGSoutput$mean$psi, type = "l", xlab = "Year", ylab = "Occupancy probability", col = "red", xlim = c(0,K+1), ylim = c(0,1), lwd = 2, lty = 1, frame.plot = FALSE, las = 1)
+#lines(1:K, data$psi.app, type = "l", col = "black", lwd = 2)
+#points(1:K, out$BUGSoutput$mean$psi, type = "l", col = "blue", lwd = 2)
+segments(1:K, out$BUGSoutput$summary[psiall,3], 1:K, out$BUGSoutput$summary[psiall,7], col = "blue", lwd = 1)
+
+
+
+#----- 5 - Dynamic occupancy model with covariates -----
+
+# Specify model in BUGS language
+sink(here("bin", "Dynocc_covariates.jags"))
+cat("
+model {
+
+# Specify priors
+psi1 ~ dunif(0, 1)
+for (k in 1:(nyear-1)){
+   phi[k] ~ dunif(0, 1)
+   gamma[k] ~ dunif(0, 1)
+   p[k] ~ dunif(0, 1) 
+   }
+p[nyear] ~ dunif(0, 1)
+
+alpha.psi ~ dnorm(0, 0.01)
+a1 ~ dnorm(0, 0.01) # elevation
+a2 ~ dnorm(0, 0.01) # edge
+a3 ~ dnorm(0, 0.01) # water
+a4 ~ dnorm(0, 0.01) # basal.area
+alpha.p ~ dnorm(0, 0.01)
+#b1 ~ dnorm(0, 0.01)
+#b2 ~ dnorm(0, 0.01)
+#b3 ~ dnorm(0, 0.01)
+#b4 ~ dnorm(0, 0.01)
+
+# Ecological submodel: Define state conditional on parameters
+for (i in 1:nsite){
+   z[i,1] ~ dbern(psi1[i,1])
+   psi[i,1] <- 1 / (1 + exp(-lpsi.lim[i,1]))
+   lpsi.lim[i,1] <- min(999, max(-999, lpsi[i,1]))
+   lpsi[i,1] <- alpha.psi + a1*elevation[i] + a2*distEdge[i] + a3*distWater[i] + a4*basalArea[i]
+
+   for (k in 2:nyear){
+      muZ[i,k]<- z[i,k-1]*phi[k-1] + (1-z[i,k-1])*gamma[k-1]
+      z[i,k] ~ dbern(muZ[i,k])
+      } #k
+   } #i
+
+# Observation model
+for (i in 1:nsite){
+   for (j in 1:nrep){
+      for (k in 1:nyear){
+         muy[i,j,k] <- z[i,k]*p[k]
+         y[i,j,k] ~ dbern(muy[i,j,k])
+         } #k
+      } #j
+   } #i
+
+# Derived parameters: Sample and population occupancy, growth rate and turnover
+psi[1] <- psi1
+n.occ[1]<-sum(z[1:nsite,1])
+for (k in 2:nyear){
+   psi[k] <- psi[k-1]*phi[k-1] + (1-psi[k-1])*gamma[k-1]
+   n.occ[k] <- sum(z[1:nsite,k])
+   growthr[k-1] <- psi[k]/psi[k-1]                         # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
+   turnover[k-1] <- (1 - psi[k-1]) * gamma[k-1]/psi[k]
+   }
+}
+",fill = TRUE)
+sink()
+
+# Bundle data
+jags.data <- list(y = y, nsite = dim(y)[1], nrep = dim(y)[2], nyear = dim(y)[3])
+
+# Initial values
+zst <- apply(y, c(1, 3), max)	# Observed occurrence as inits for z
+inits <- function(){ 
+  zst[is.na(zst)] <- 1 # NAs will result in error (node inconsistent with parents)
+  list(z = zst)
+}
+
+# Parameters monitored
+params <- c("psi", "phi", "gamma", "p", "n.occ", "growthr", "turnover",
+            "alpha", "a1", "a2", "a3", "a4") 
+
+
+# MCMC settings
+ni <- 2500
+nt <- 4
+nb <- 500
+nc <- 3
+
+# Call JAGS from R (BRT 3 min)
+out <- jags(jags.data, inits, params, here("bin", "Dynocc_covariates.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+
+
+# Summarize posteriors
+print(out, dig = 2)
+psiall <- paste("psi[", 1:K, "]", sep="")
+print(out$BUGSoutput$summary[psiall, c(1, 2, 3, 7)], dig = 3)
+phiall <- paste("phi[", 1:(K-1), "]", sep="")
+print(out$BUGSoutput$summary[phiall, c(1, 2, 3, 7)], dig = 3)
+gammaall <- paste("gamma[", 1:(K-1), "]", sep="")
+print(out$BUGSoutput$summary[gammaall, c(1, 2, 3, 7)], dig = 3)
+pall <- paste("p[", 1:K, "]", sep="")
+print(out$BUGSoutput$summary[pall, c(1, 2, 3, 7)], dig = 3)
+
+plot(1:K, out$BUGSoutput$mean$psi, type = "l", xlab = "Year", ylab = "Occupancy probability", col = "red", xlim = c(0,K+1), ylim = c(0,1), lwd = 2, lty = 1, frame.plot = FALSE, las = 1)
+#lines(1:K, data$psi.app, type = "l", col = "black", lwd = 2)
+#points(1:K, out$BUGSoutput$mean$psi, type = "l", col = "blue", lwd = 2)
+segments(1:K, out$BUGSoutput$summary[psiall,3], 1:K, out$BUGSoutput$summary[psiall,7], col = "blue", lwd = 1)
+
+
+
+#####################################
 #----- 4 - Dynamic occupancy model with site heterogeneity in all parameters -----
 
 # Specify model in JAGS language
