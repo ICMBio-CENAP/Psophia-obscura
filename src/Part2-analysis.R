@@ -32,63 +32,70 @@ library(ggplot2)
 
 
 #----- 3 - Read and prepare data -----
+
 pobscura <- readRDS(here("data", "pobscura.rds"))
 names(pobscura)
 y <- array(c(unlist(pobscura[,2:11]), unlist(pobscura[,12:21]), unlist(pobscura[,22:31]), unlist(pobscura[,32:41])), c(61, 10, 4))
 str(y)
+
 SiteCovs <- pobscura[,42:48]
-head(SiteCovs)
-
-# check corr in SiteCovs
-cor(SiteCovs)
-# elevation and slope 0.7 corr
-
 names(SiteCovs)
 landCover <- SiteCovs[,1]
 distWater <- SiteCovs[,2]
 distEdge <- SiteCovs[,3]
-slope <- SiteCovs[,4]
-elevation <- SiteCovs[,5]
-treeBurned <- SiteCovs[,6]
-basalArea <- SiteCovs[,7]
-treeDensity <- SiteCovs[,8]
+elevation <- SiteCovs[,4]
+basalArea <- SiteCovs[,5]
+treeDensity <- SiteCovs[,6]
+block <- SiteCovs[,7]
 
+# check corr in SiteCovs
+covars_correlations <- data.frame(cor(SiteCovs))
+covars_correlations
+write.csv(covars_correlations, here("results", "covars_correlations.csv"), row.names=FALSE)
 
 # Standardize covariates
-mean.slope <- mean(slope, na.rm = TRUE)
-sd.slope <- sd(slope[!is.na(slope)])
-slope <- (slope-mean.slope)/sd.slope     # Standardise slope
-slope[is.na(slope)] <- 0               # Impute zeroes (means)
+mean.landCover <- mean(landCover, na.rm = TRUE)
+sd.landCover <- sd(landCover[!is.na(landCover)])
+landCover <- (landCover-mean.landCover)/sd.landCover     # Standardise landCover
+landCover[is.na(landCover)] <- 0               # Impute zeroes (means)
+landCover <- round(landCover, 2)
+landCover
 
 mean.distWater <- mean(distWater, na.rm = TRUE)
 sd.distWater <- sd(distWater[!is.na(distWater)])
 distWater <- (distWater-mean.distWater)/sd.distWater     # Standardise distWater
 distWater[is.na(distWater)] <- 0               # Impute zeroes (means)
+distWater <- round(distWater, 2)
+distWater
 
 mean.distEdge <- mean(distEdge, na.rm = TRUE)
 sd.distEdge <- sd(distEdge[!is.na(distEdge)])
 distEdge <- (distEdge-mean.distEdge)/sd.distEdge     # Standardise distEdge
 distEdge[is.na(distEdge)] <- 0               # Impute zeroes (means)
+distEdge <- round(distEdge, 2)
+distEdge
 
 mean.elevation <- mean(elevation, na.rm = TRUE)
 sd.elevation <- sd(elevation[!is.na(elevation)])
 elevation <- (elevation-mean.elevation)/sd.elevation     # Standardise elevation
 elevation[is.na(elevation)] <- 0               # Impute zeroes (means)
-
-mean.treeBurned <- mean(treeBurned, na.rm = TRUE)
-sd.treeBurned <- sd(treeBurned[!is.na(treeBurned)])
-treeBurned <- (treeBurned-mean.treeBurned)/sd.treeBurned     # Standardise treeBurned
-treeBurned[is.na(treeBurned)] <- 0               # Impute zeroes (means)
+elevation <- round(elevation, 2)
+elevation
 
 mean.basalArea <- mean(basalArea, na.rm = TRUE)
 sd.basalArea <- sd(basalArea[!is.na(basalArea)])
 basalArea <- (basalArea-mean.basalArea)/sd.basalArea     # Standardise basalArea
 basalArea[is.na(basalArea)] <- 0               # Impute zeroes (means)
+basalArea <- round(basalArea, 2)
+basalArea
 
 mean.treeDensity <- mean(treeDensity, na.rm = TRUE)
 sd.treeDensity <- sd(treeDensity[!is.na(treeDensity)])
 treeDensity <- (treeDensity-mean.treeDensity)/sd.treeDensity     # Standardise treeDensity
 treeDensity[is.na(treeDensity)] <- 0               # Impute zeroes (means)
+treeDensity <- round(treeDensity, 2)
+treeDensity
+
 
 #----- 4 - Dynamic occupancy model with site heterogeneity in all parameters -----
 
@@ -99,57 +106,56 @@ cat("
 
 model {
   
-  
-  psi~dunif(0,1)
+  psi ~ dunif(0,1)
   tau.gam ~ dgamma(.1,.1)
   tau.phi ~ dgamma(.1,.1)
-  taup~dgamma(.1,.1)
-  sigma.phi<- 1/sqrt(tau.phi)
-  sigma.gam<- 1/sqrt(tau.gam)
-  sigma.p<-sqrt(1/taup)
+  taup ~ dgamma(.1,.1)
+  sigma.phi <- 1/sqrt(tau.phi)
+  sigma.gam <- 1/sqrt(tau.gam)
+  sigma.p <- sqrt(1/taup)
   
-  mup.prob[1]~dunif(0,1)
-  logit(mup[1])<-mup.prob[1]
+  mup.prob[1] ~ dunif(0,1)
+  logit(mup[1]) <- mup.prob[1]
   for(i in 2:nyear){
-    mup.prob[i]~dunif(0,1)
-    logit(mup[i])<-mup.prob[i]
-    muphi.prob[i]~dunif(0,1)
-    logit(muphi[i])<-muphi.prob[i]
-    mugam.prob[i]~dunif(0,1)
-    logit(mugam[i])<-mugam.prob[i]
+    mup.prob[i] ~ dunif(0,1)
+    logit(mup[i]) <- mup.prob[i]
+    muphi.prob[i] ~ dunif(0,1)
+    logit(muphi[i]) <- muphi.prob[i]
+    mugam.prob[i] ~ dunif(0,1)
+    logit(mugam[i]) <- mugam.prob[i]
   }
   
   for(i in 1:nsite){
-    lp[i]~dnorm(0,taup)I(-12,12)
+    lp[i] ~ dnorm(0,taup)I(-12,12)
     for(t in 1:nyear){
       logit(p[i,t])<-mup[t]+lp[i]
     }
   }
   
   for(i in 1:nsite){
-    z[i,1]~dbern(psi)
-    lphi[i]~dnorm(0,tau.phi)I(-12,12)
-    lgam[i]  ~ dnorm(0,tau.gam)I(-12,12)
+    z[i,1] ~ dbern(psi)
+    lphi[i] ~ dnorm(0,tau.phi)I(-12,12)
+    lgam[i] ~ dnorm(0,tau.gam)I(-12,12)
     for(t in 2:nyear){
-      logit(gamma[i,t])<- mugam[t] + lgam[i] 
-      logit(phi[i,t])<-   muphi[t] + lphi[i] 
-      muZ[i,t]<- z[i,t-1]*phi[i,t] + (1-z[i,t-1])*gamma[i,t]
-      z[i,t]~dbern(muZ[i,t])
+      logit(gamma[i,t]) <- mugam[t] + lgam[i] 
+      logit(phi[i,t]) <- muphi[t] + lphi[i] 
+      muZ[i,t] <- z[i,t-1]*phi[i,t] + (1-z[i,t-1])*gamma[i,t]
+      z[i,t] ~ dbern(muZ[i,t])
     }
   }
   
   for(i in 1:nsite){
     for (t in 1:nyear){
-      Px[i,t]<- z[i,t]*p[i,t]
+      Px[i,t] <- z[i,t]*p[i,t]
       x[i,t] ~ dbin(Px[i,t],50)
     }
   }
   
   for(i in 1:nyear){
-    psi.year[i]<-sum(z[1:nsite,i])
+    psi.year[i] <- sum(z[1:nsite,i])
   }
   for(i in 2:nyear){
-    growthr[i-1]<-psi.year[i]/psi.year[i-1]
+    growthr[i-1] <- psi.year[i]/psi.year[i-1]
   }
 
 }
@@ -177,7 +183,7 @@ nt <- 4
 nb <- 1000
 nc <- 3
 
-out1 <- jags(jags.data, inits, params, here("bin", "cerulean.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, working.directory =  getwd())
+out1 <- jags(jags.data, inits, params, here("bin", "cerulean.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
 
 # Summarize posteriors
 print(out1, dig = 3)
