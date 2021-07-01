@@ -43,7 +43,7 @@ dataRBG <- dataTemp # use new df created by function
 species <- unique(dataRBG$bin)
 cams <- unique(dataRBG$Camera.Trap.Name)
 years <- unique(dataRBG$Sampling.Event)
-secondPeriods <- 1:11
+secondPeriods <- 1:10
 
 # Separate different years - clunky?
 dataRBG2016 <- dplyr::filter(dataRBG, Sampling.Event == 2016)
@@ -51,8 +51,9 @@ dataRBG2017 <- dplyr::filter(dataRBG, Sampling.Event == 2017)
 dataRBG2018 <- dplyr::filter(dataRBG, Sampling.Event == 2018)
 dataRBG2019 <- dplyr::filter(dataRBG, Sampling.Event == 2019)
 
-# use only first 55 days of sampling
-# since we are using only 1st 55 days, we must reset end dates using max photo date
+
+# use only first 50 days of sampling
+# since we are using only 1st 50 days, we must reset end dates using max photo date
 f.update.end.data <- function(data, duration){
   new.end.date <- min(data$Start.Date)+duration
   df1 <- subset(data, Photo.Date <= new.end.date)
@@ -66,24 +67,18 @@ f.update.end.data <- function(data, duration){
   assign("df1", df1, envir=.GlobalEnv)
 } # End of function
 
-f.update.end.data(dataRBG2016, 55)
+f.update.end.data(dataRBG2016, 50)
 dataRBG2016 <- df1
-f.update.end.data(dataRBG2017, 55)
+f.update.end.data(dataRBG2017, 50)
 dataRBG2017 <- df1
-f.update.end.data(dataRBG2018, 55)
+f.update.end.data(dataRBG2018, 50)
 dataRBG2018 <- df1
-f.update.end.data(dataRBG2019, 55)
+f.update.end.data(dataRBG2019, 50)
 dataRBG2019 <- df1
-
 
 
 # Create presence/absence matrices for each species each year
 # matrix dimensions are all identical accross species and years
-
-#paMats2016 <- f.matrix.creator3(dataRBG2016, cams, species)
-#paMats2017 <- f.matrix.creator3(dataRBG2017, cams, species)
-#paMats2018 <- f.matrix.creator3(dataRBG2018, cams, species)
-#paMats2019 <- f.matrix.creator3(dataRBG2019, cams, species)
 
 # before using f.matrix.creator check sampling duration
 duration <- function(data) {
@@ -91,19 +86,22 @@ duration <- function(data) {
   return(sampling.days)
 }
 
-duration(dataRBG2016) # 55 days ok
-duration(dataRBG2017) 
-duration(dataRBG2018) 
-duration(dataRBG2019) 
+duration(dataRBG2016) # 
+#round(55/5) # get the number of occasions argument for f.matrix.creator4
+duration(dataRBG2017)
+duration(dataRBG2018)
+duration(dataRBG2019)
 
-paMats2016 <- f.matrix.creator4(dataRBG2016, species, 11)
-paMats2017 <- f.matrix.creator4(dataRBG2017, species, 11)
-paMats2018 <- f.matrix.creator4(dataRBG2018, species, 11)
-paMats2019 <- f.matrix.creator4(dataRBG2019, species, 11)
+paMats2016 <- f.matrix.creator4(dataRBG2016, species, 10)
+paMats2017 <- f.matrix.creator4(dataRBG2017, species, 10)
+paMats2018 <- f.matrix.creator4(dataRBG2018, species, 10)
+paMats2019 <- f.matrix.creator4(dataRBG2019, species, 10)
+
+dim(paMats2016[[1]]) # check
+paMats2016[[1]] # check
 
 # check species names
-names(paMats2016)
-# Psophia obscura is the 1st species
+names(paMats2016) # Psophia obscura is the 1st species
 
 # function to create species data
 createSppData <- function(x) {
@@ -124,6 +122,7 @@ createSppData <- function(x) {
 # check if it works
 createSppData("Psophia obscura")
 dataRBG_species_Psophia_obscura
+dim(dataRBG_species_Psophia_obscura)
 
 
 #----- 4 - Read covariate data
@@ -131,47 +130,90 @@ dataRBG_species_Psophia_obscura
 # Land cover Mapbiomas
 cover <- read.csv(here("data", "cover_mapbiomas.csv"))
 names(cover)[2] <- "Camera.Trap.Name"
-names(cover)[7] <- "landCover.500m.16"
+names(cover)[4] <- "cover"
 cover$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", cover$Camera.Trap.Name)
 cover$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", cover$Camera.Trap.Name)
+cover <- cover[,c("Camera.Trap.Name", "cover")]
+head(cover)
+hist(cover$cover)
+sort(cover$cover)
+# virtually all sites have 100% forest cover so maybe this variable should not be used
+# an alternative would be to use distance to edges
 
 # Distance to water
-dist.water <- read.csv(here("data", "dist_agua.csv"))
-names(dist.water)[3] <- "Camera.Trap.Name"
-names(dist.water)[4] <- "dist.water"
+dist.water <- read.csv(here("data", "dist_agua_conv_trsh6_13fev.csv"))
+names(dist.water)[1] <- "Camera.Trap.Name"
 dist.water$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", dist.water$Camera.Trap.Name)
 dist.water$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", dist.water$Camera.Trap.Name)
+names(dist.water)[4] <- "dist.water"
+dist.water <- dist.water[,c("Camera.Trap.Name", "dist.water")]
+head(dist.water)
 
 # Distance to forest edge
-dist.edge <- read.csv(here("data", "dist_to_edge.csv"))
-names(dist.edge) <- c("Camera.Trap.Name", "dis.to.edge")
+dist.edge1 <- read.csv(here("data", "dist_to_edge.csv"))
+names(dist.edge) <- c("Camera.Trap.Name", "dist.edge")
+dist.edge$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", dist.edge$Camera.Trap.Name)
+dist.edge$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", dist.edge$Camera.Trap.Name)
+head(dist.edge)
 
-# Slope
-slope.elev <- read.csv(here("data", "slope_altitd_pt_cam.csv"))
-#names(slope.elev)[2] <- "Camera.Trap.Name"
-names(slope.elev) <- c("seq", "Camera.Trap.Name", "slope", "elevation")
-slope.elev$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", slope.elev$Camera.Trap.Name)
-slope.elev$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", slope.elev$Camera.Trap.Name)
+# distance to pasture > 10ha is exactly the same as distance to edge so lets keep the former
+#dist.pasto <- read.csv(here("data", "dist_pasto10ha.csv"))
+#names(dist.pasto)[1] <- "Camera.Trap.Name"
+#dist.pasto$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", dist.pasto$Camera.Trap.Name)
+#dist.pasto$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", dist.pasto$Camera.Trap.Name)
+#names(dist.pasto)[2] <- "dist.pasto"
+#dist.pasto <- dist.pasto[,c("Camera.Trap.Name", "dist.pasto")]
+#head(dist.pasto)
+
+
+# elevation
+elev <- read.csv(here("data", "slope_elev.csv"))
+names(elev)[1] <- "Camera.Trap.Name"
+names(elev)[3] <- "elevation"
+elev$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", elev$Camera.Trap.Name)
+elev$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", elev$Camera.Trap.Name)
+elev <- elev[,c("Camera.Trap.Name", "elevation")]
+head(elev)
 
 # tree structure
 trees <- read.csv(here("data", "tree_structure.csv"))
+head(trees)
+hist(trees$basal.area)
+hist(log(trees$basal.area))
+sort(trees$basal.area)
+
+# camera array (block)
+block <- read.csv(here("data", "blocos.csv"))
+names(block)[1] <- "Camera.Trap.Name"
+names(block)[2] <- "block"
+block$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", block$Camera.Trap.Name)
+block$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", block$Camera.Trap.Name)
+block <- block[,c("Camera.Trap.Name", "block")]
+head(block)
 
 
 ## create a single covariates dataframe
-covars <- merge(cover[,c(2,7)], dist.water[,3:4], by="Camera.Trap.Name")
-covars <- merge(covars, dist.edge[,1:2], by="Camera.Trap.Name")
-covars <- merge(covars, slope.elev[,2:4], by="Camera.Trap.Name")
-covars <- merge(covars, trees[,c(2,4,6,7)], by="Camera.Trap.Name")
+covars <- merge(cover, dist.water, by="Camera.Trap.Name")
+covars <- merge(covars, dist.edge, by="Camera.Trap.Name")
+covars <- merge(covars, elev, by="Camera.Trap.Name")
+covars <- merge(covars, trees[,c("Camera.Trap.Name", "basal.area", "tree.density")], by="Camera.Trap.Name")
+covars <- merge(covars, block, by="Camera.Trap.Name")
+head(covars)
 
 # merge 
 dataRBG_species_Psophia_obscura$Camera.Trap.Name <- rownames(dataRBG_species_Psophia_obscura)
+row.names(dataRBG_species_Psophia_obscura) <- NULL
+pobscura <- dataRBG_species_Psophia_obscura
+head(pobscura)
+
 
 # create a separate 2017 dataset for single-season model
-Pobscura2017 <- dataRBG_species_Psophia_obscura[,c(45,12:22)]
+#Pobscura2017 <- dataRBG_species_Psophia_obscura[,c(45,12:22)]
+#Pobscura2017 <- merge(Pobscura2017, covars, by="Camera.Trap.Name")
 
-Pobscura2017 <- merge(Pobscura2017, covars, by="Camera.Trap.Name")
-Pobscura <- merge(dataRBG_species_Psophia_obscura, covars, by="Camera.Trap.Name")
+pobscura <- merge(pobscura, covars, by="Camera.Trap.Name")
+names(pobscura)[1] <- "cams"
 
 # Save to disk
-saveRDS(Pobscura2017, here("data","Pobscura2017.rds"))
-saveRDS(Pobscura, here("data","Pobscura.rds"))
+#saveRDS(Pobscura2017, here("data","Pobscura2017.rds"))
+saveRDS(pobscura, here("data","pobscura.rds"))
