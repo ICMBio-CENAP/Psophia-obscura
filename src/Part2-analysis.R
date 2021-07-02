@@ -42,15 +42,16 @@ R <- dim(y)[1]
 J <- dim(y)[2]
 K <- dim(y)[3]
 
-SiteCovs <- pobscura[,42:48]
+SiteCovs <- pobscura[,42:49]
 names(SiteCovs)
 original.landCover <- SiteCovs[,1]
 original.distWater <- SiteCovs[,2]#/1000 # convert from metres to km
 original.distEdge <- SiteCovs[,3]#/1000 # convert from metres to km
-original.elevation <- SiteCovs[,4]
-original.basalArea <- SiteCovs[,5]
-original.treeDensity <- SiteCovs[,6]
-block <- SiteCovs[,7]
+original.point.elevation <- SiteCovs[,4]
+original.range.elevation <- SiteCovs[,5]
+original.basalArea <- SiteCovs[,6]
+original.treeDensity <- SiteCovs[,7]
+block <- SiteCovs[,8]
 
 # check corr in SiteCovs
 covars_correlations <- data.frame(cor(SiteCovs))
@@ -82,13 +83,21 @@ distEdge[is.na(distEdge)] <- 0               # Impute zeroes (means)
 distEdge <- round(distEdge, 2)
 distEdge
 
-elevation <- original.elevation
-mean.elevation <- mean(elevation, na.rm = TRUE)
-sd.elevation <- sd(elevation[!is.na(elevation)])
-elevation <- (elevation-mean.elevation)/sd.elevation     # Standardise elevation
-elevation[is.na(elevation)] <- 0               # Impute zeroes (means)
-elevation <- round(elevation, 2)
-elevation
+point.elevation <- original.point.elevation
+mean.point.elevation <- mean(point.elevation, na.rm = TRUE)
+sd.point.elevation <- sd(point.elevation[!is.na(point.elevation)])
+point.elevation <- (point.elevation-mean.point.elevation)/sd.point.elevation     # Standardise point.elevation
+point.elevation[is.na(point.elevation)] <- 0               # Impute zeroes (means)
+point.elevation <- round(point.elevation, 2)
+point.elevation
+
+range.elevation <- original.range.elevation
+mean.range.elevation <- mean(range.elevation, na.rm = TRUE)
+sd.range.elevation <- sd(range.elevation[!is.na(range.elevation)])
+range.elevation <- (range.elevation-mean.range.elevation)/sd.range.elevation     # Standardise range.elevation
+range.elevation[is.na(range.elevation)] <- 0               # Impute zeroes (means)
+range.elevation <- round(range.elevation, 2)
+range.elevation
 
 basalArea <- original.basalArea
 mean.basalArea <- mean(basalArea, na.rm = TRUE)
@@ -178,7 +187,7 @@ sink()
 
 # Bundle data
 jags.data <- list(y = y, nsite = dim(y)[1], nrep = dim(y)[2], nyear = dim(y)[3],
-                  elevation=elevation, distEdge=distEdge, distWater=distWater, basalArea=basalArea)
+                  elevation=point.elevation, distEdge=distEdge, distWater=distWater, basalArea=basalArea)
 
 # Initial values
 zst <- apply(y, c(1, 3), max)	# Observed occurrence as inits for z
@@ -281,7 +290,7 @@ Fig_effects(out)
 
 dev.off()
 
-predictor.effects(out, original.elevation, 1)
+predictor.effects(out, original.point.elevation, 1)
 mtext("Elevation (m)", side=1, line=3)
 
 predictor.effects(out, original.distEdge, 2)
@@ -293,6 +302,11 @@ mtext("Distance to water (m)", side=1, line=3)
 predictor.effects(out, original.basalArea, 4)
 mtext("Basal area (m²/ha)", side=1, line=3)
 
+# save as jpeg:
+jpeg(here("results", "basalArea_effect.jpg"), width = 800, height = 400) # Open jpeg file
+predictor.effects(out, original.basalArea, 4)
+mtext("Basal area (m²/ha)", side=1, line=3)
+dev.off()
 
 
 #####################################

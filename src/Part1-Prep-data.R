@@ -169,16 +169,17 @@ head(dist.edge)
 # elevation
 elev <- read.csv(here("data", "slope_elev.csv"))
 names(elev)[1] <- "Camera.Trap.Name"
-names(elev)[3] <- "elevation"
+names(elev)[3] <- "point.elevation"
+names(elev)[6] <- "range.elevation"
 elev$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", elev$Camera.Trap.Name)
 elev$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", elev$Camera.Trap.Name)
-elev <- elev[,c("Camera.Trap.Name", "elevation")]
+elev <- elev[,c("Camera.Trap.Name", "point.elevation", "range.elevation")]
 head(elev)
 
 # tree structure
 trees <- read.csv(here("data", "trees.csv"))
 head(trees)
-trees <- trees[,c("Camera.Trap.Name", "basal.area", "density")]
+trees <- trees[,c("Camera.Trap.Name", "basal.area", "tree.density")]
 
 # camera array (block)
 block <- read.csv(here("data", "blocos.csv"))
@@ -194,7 +195,7 @@ head(block)
 covars <- merge(cover, dist.water, by="Camera.Trap.Name")
 covars <- merge(covars, dist.edge, by="Camera.Trap.Name")
 covars <- merge(covars, elev, by="Camera.Trap.Name")
-covars <- merge(covars, trees[,c("Camera.Trap.Name", "basal.area", "density")], by="Camera.Trap.Name")
+covars <- merge(covars, trees, by="Camera.Trap.Name")
 covars <- merge(covars, block, by="Camera.Trap.Name")
 head(covars)
 
