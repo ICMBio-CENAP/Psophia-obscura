@@ -190,6 +190,10 @@ block$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", block$Camera.Trap.Name)
 block <- block[,c("Camera.Trap.Name", "block")]
 head(block)
 
+# recovery time
+# use data from the Forest Ecology and Management paper
+covars_hmsc <- read.csv(here("data", "covars_hmsc.csv"))
+recovery <- covars_hmsc[,c("Camera.Trap.Name", "recovery")]
 
 ## create a single covariates dataframe
 covars <- merge(cover, dist.water, by="Camera.Trap.Name")
@@ -197,6 +201,7 @@ covars <- merge(covars, dist.edge, by="Camera.Trap.Name")
 covars <- merge(covars, elev, by="Camera.Trap.Name")
 covars <- merge(covars, trees, by="Camera.Trap.Name")
 covars <- merge(covars, block, by="Camera.Trap.Name")
+covars <- merge(covars, recovery, by="Camera.Trap.Name")
 head(covars)
 
 # merge 

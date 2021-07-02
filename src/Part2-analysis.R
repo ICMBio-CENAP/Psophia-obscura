@@ -42,7 +42,7 @@ R <- dim(y)[1]
 J <- dim(y)[2]
 K <- dim(y)[3]
 
-SiteCovs <- pobscura[,42:49]
+SiteCovs <- pobscura[,42:50]
 names(SiteCovs)
 original.landCover <- SiteCovs[,1]
 original.distWater <- SiteCovs[,2]#/1000 # convert from metres to km
@@ -52,11 +52,27 @@ original.range.elevation <- SiteCovs[,5]
 original.basalArea <- SiteCovs[,6]
 original.treeDensity <- SiteCovs[,7]
 block <- SiteCovs[,8]
+original.recovery <- SiteCovs[,9]
 
 # check corr in SiteCovs
 covars_correlations <- data.frame(cor(SiteCovs))
 covars_correlations
 write.csv(covars_correlations, here("results", "covars_correlations.csv"), row.names=FALSE)
+
+# check distributions
+hist(original.landCover, main="", xlab="Proportion of forest in 500 m buffer")
+hist(log(original.landCover+0.1), main="", xlab="Log proportion of forest in 500 m buffer")
+hist(original.distWater, main="", xlab="Distance to water (km)" )
+hist(log(original.distWater + 0.1), main="", xlab="Log distance to water (km)" )
+hist(original.distEdge, main="", xlab="Distance to pasture (km)" )
+hist(log(original.distEdge + 0.1), main="", xlab="Log distance to pasture (km)" )
+hist(original.point.elevation, main="", xlab="Elevation (m)")
+hist(log(original.point.elevation), main="", xlab="Log elevation (m)")
+hist(original.basalArea, main="", xlab="Basal area (m^2/ha)")
+hist(original.treeDensity, main="", xlab="Tree density (ind/ha)")
+hist(log(original.treeDensity), main="", xlab="Log tree density (ind/ha)")
+hist(log(original.recovery), main="", xlab="Recovery time (years)")
+# use log for distance to water and to edges
 
 # Standardize covariates
 landCover <- original.landCover
@@ -67,7 +83,7 @@ landCover[is.na(landCover)] <- 0               # Impute zeroes (means)
 landCover <- round(landCover, 2)
 landCover
 
-distWater <- original.distWater
+distWater <- log(original.distWater)
 mean.distWater <- mean(distWater, na.rm = TRUE)
 sd.distWater <- sd(distWater[!is.na(distWater)])
 distWater <- (distWater-mean.distWater)/sd.distWater     # Standardise distWater
@@ -75,7 +91,7 @@ distWater[is.na(distWater)] <- 0               # Impute zeroes (means)
 distWater <- round(distWater, 2)
 distWater
 
-distEdge <- original.distEdge
+distEdge <- log(original.distEdge)
 mean.distEdge <- mean(distEdge, na.rm = TRUE)
 sd.distEdge <- sd(distEdge[!is.na(distEdge)])
 distEdge <- (distEdge-mean.distEdge)/sd.distEdge     # Standardise distEdge
@@ -114,6 +130,15 @@ treeDensity <- (treeDensity-mean.treeDensity)/sd.treeDensity     # Standardise t
 treeDensity[is.na(treeDensity)] <- 0               # Impute zeroes (means)
 treeDensity <- round(treeDensity, 2)
 treeDensity
+
+recovery <- original.recovery
+mean.recovery <- mean(recovery, na.rm = TRUE)
+sd.recovery <- sd(recovery[!is.na(recovery)])
+recovery <- (recovery-mean.recovery)/sd.recovery     # Standardise recovery
+recovery[is.na(recovery)] <- 0               # Impute zeroes (means)
+recovery <- round(recovery, 2)
+recovery
+
 
 #----- 4 - Dynamic occupancy model with covariates -----
 

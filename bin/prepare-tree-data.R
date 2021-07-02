@@ -60,12 +60,16 @@ hist(veget$dist.m) # seems ok
 range(veget$dist.m)
 mean(veget$dist.m)
 median(veget$dist.m)
+quantile(veget$dist.m, probs=c(0.025))
 quantile(veget$dist.m, probs=c(0.975))
-# replace the value of trees above the 95% quantile by the quantile itself 
-#nrow(veget)
-nrow(veget[which(veget$dist.m > quantile(veget$dist.m, probs=c(0.975))),]) # 94 trees are the more distant
-#veget[which(veget$dist.m > quantile(veget$dist.m, probs=c(0.975))),"ba"] <- quantile(veget$dist.m, probs=c(0.975))
-#hist(veget$dist.m)
+sort(veget$dist.m)
+# replace distances = 0 by 0.1
+nrow(veget[which(veget$dist.m < 0.1),]) # 199 trees have zero distance
+veget[which(veget$dist.m < 0.1),"dist.m"] <- 0.1
+# replace distances > 95% quantile by the quantile value
+nrow(veget[which(veget$dist.m > quantile(veget$dist.m, probs=c(0.975))),]) # 94 trees above distance quantile
+veget[which(veget$dist.m > quantile(veget$dist.m, probs=c(0.975))), "dist.m"] <- quantile(veget$dist.m, probs=c(0.975))
+hist(veget$dist.m)
 
 
 ## ----- Estimate site-level tree density and basal area -----
@@ -104,7 +108,7 @@ for(i in 1:nrow(trees)) {
 }
 trees # check
 
-hist(trees$tree.density)
-hist(trees$basal.area)
+hist(trees$tree.density, xlab="Tree density (trees/ha)", main="")
+hist(trees$basal.area, xlab="Basal area (m²2/ha)", main="")
 
 write.csv(trees, here("data", "trees.csv"), row.names=FALSE)
