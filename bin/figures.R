@@ -85,12 +85,12 @@ predictor.effects.psi <- function(x, original.predictor, coef) {
   original.pred <- round(seq(min(original.predictor), max(original.predictor), length.out = 30),2)
   pred <- round((original.pred - mean(original.pred))/sd(original.pred), 2)
   #pred <- original.pred # it was already standardized
-  psi.pred <- plogis( mean(x$BUGSoutput$sims.list$alpha.psi) +
+  psi.pred <- plogis( mean(x$BUGSoutput$sims.list$mu.psi) +
                         mean(x$BUGSoutput$sims.list$beta.psi[, coef]) * pred )
   
   array.psi.pred <- array(NA, dim = c(length(pred), mcmc.sample))
   for (i in 1:mcmc.sample){
-    array.psi.pred[,i] <- plogis( x$BUGSoutput$sims.list$alpha.psi[i] +
+    array.psi.pred[,i] <- plogis( x$BUGSoutput$sims.list$mu.psi[i] +
                                     x$BUGSoutput$sims.list$beta.psi[i,coef] * pred )
   }
   
@@ -120,12 +120,12 @@ predictor.effects.p <- function(x, original.predictor, coef) {
   original.pred <- round(seq(min(original.predictor), max(original.predictor), length.out = 30),2)
   pred <- round((original.pred - mean(original.pred))/sd(original.pred), 2)
   #pred <- original.pred # it was already standardized
-  p.pred <- plogis( mean(x$BUGSoutput$sims.list$alpha.p) +
+  p.pred <- plogis( mean(x$BUGSoutput$sims.list$mu.p) +
                         mean(x$BUGSoutput$sims.list$beta.p[, coef]) * pred )
   
   array.p.pred <- array(NA, dim = c(length(pred), mcmc.sample))
   for (i in 1:mcmc.sample){
-    array.p.pred[,i] <- plogis( x$BUGSoutput$sims.list$alpha.p[i] +
+    array.p.pred[,i] <- plogis( x$BUGSoutput$sims.list$mu.p[i] +
                                     x$BUGSoutput$sims.list$beta.p[i,coef] * pred )
   }
   
@@ -173,3 +173,38 @@ Fig_effects.psi <- function(x) {
   
 }
 #Fig_effects(out)
+
+#-----
+# Plot effects with uncertainty
+predictor.effects.gam <- function(x, original.predictor, coef) {
+  
+  #dev.off()
+  
+  ## Predict effect of logging on initial abundance with uncertainty
+  mcmc.sample <- x$BUGSoutput$n.sims
+  
+  original.pred <- round(seq(min(original.predictor), max(original.predictor), length.out = 30),2)
+  pred <- round((original.pred - mean(original.pred))/sd(original.pred), 2)
+  #pred <- original.pred # it was already standardized
+  gam.pred <- plogis( mean(x$BUGSoutput$sims.list$mu.gam) +
+                        mean(x$BUGSoutput$sims.list$beta.gam[, coef]) * pred )
+  
+  array.gam.pred <- array(NA, dim = c(length(pred), mcmc.sample))
+  for (i in 1:mcmc.sample){
+    array.gam.pred[,i] <- plogis( x$BUGSoutput$sims.list$mu.gam[i] +
+                                    x$BUGSoutput$sims.list$beta.gam[i,coef] * pred )
+  }
+  
+  # Plot for a subsample of MCMC draws
+  sub.set <- sort(sample(1:mcmc.sample, size = 200))
+  
+  plot(original.pred, gam.pred, main = "", ylab = expression(gamma), xlab = "", 
+       ylim=c(0, 1), type = "l", lwd = 2, las=1, frame.plot = FALSE)
+  for (i in sub.set){
+    lines(original.pred, array.gam.pred[,i], type = "l", lwd = 1, col = "gray")
+  }
+  lines(original.pred, gam.pred, type = "l", lwd = 2, col = "blue")
+  #mtext(expression(gam), side=2, line=3)
+}
+#predictor.effects(out, original.elevation, "a1")
+
