@@ -17,7 +17,9 @@ Para artigo em preparação
 
 <img src="results/occ_trends.jpg" title="Occupancy trends" width="500">
 <img src="results/basalArea_effect_psi.jpg" title="Effect of basal area on psi" width="500">
-<img src="results/recovery_effect_psi.jpg.jpg" title="Distance to water" width="500">
+<img src="results/recovery_effect_psi.jpg" title="Effect of recovery on psi" width="500">
+<img src="results/basalArea_effect_gamma.jpg" title="Effect of basal area on gamma" width="500">
+
 
 # Contato
 Se tiver questões entre em contato com <elildojr@gmail.com>
