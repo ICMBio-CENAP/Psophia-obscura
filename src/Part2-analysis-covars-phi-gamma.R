@@ -150,73 +150,99 @@ model {
 
   ## Priors
   
-  #for (k in 1:(nyear-1)){
-  #  phi[k] ~ dunif(0, 1)
-  #  gamma[k] ~ dunif(0, 1)
-    #p[k] ~ dunif(0, 1) 
+  #psi ~ dunif(0,1)
+  tau.gam ~ dgamma(.1,.1)
+  tau.phi ~ dgamma(.1,.1)
+  #taup ~ dgamma(.1,.1)
+  #sigma.phi <- 1/sqrt(tau.phi)
+  #sigma.gam <- 1/sqrt(tau.gam)
+  #sigma.p <- sqrt(1/taup)
+  
+  #for(i in 2:nyear){
+  #  mup.prob[i] ~ dunif(0,1)
+  #  logit(mup[i]) <- mup.prob[i]
+  #  muphi.prob[i] ~ dunif(0,1)
+  #  logit(muphi[i])<-muphi.prob[i]
+  #  mugam.prob[i]~dunif(0,1)
+  #  logit(mugam[i])<-mugam.prob[i]
   #}
-  #p[nyear] ~ dunif(0, 1)
   
-  # random site effects
+  # random site effects (intercept) for psi
   for (i in 1:nsite){
-      mu.psi[i] ~ dnorm(0, tau.psi)
-      mu.p[i] ~ dnorm(0, tau.p)
-      mu.phi[i] ~ dnorm(0, tau.phi)
-      mu.gam[i] ~ dnorm(0, tau.gam)
-    } #i
-  # hyperpriors
-  tau.psi ~ dgamma(0.001,0.001)
-  tau.p ~ dgamma(0.001,0.001)
-  tau.phi ~ dgamma(0.001,0.001)
-  tau.gam ~ dgamma(0.001,0.001)
-   
-  # psi intercept
-  #alpha.psi ~ dnorm(0, 0.01)
+    alpha.psi[i] ~ dnorm(mu.site, tau.site)
+  } #i
+  mu.site ~ dnorm(0, 0.5)
+  tau.site <- 1/(sd.site*sd.site)
+  sd.site ~ dunif(0,5)
   
-  # effects (betas)
+  # random site effects for p
+  for (i in 1:nsite){
+    alpha.p[i] ~ dnorm(mu.p.site, tau.p.site)
+    } #i
+  mu.p.site ~ dnorm(0, 0.5)
+  tau.p.site <- 1/(sd.p.site*sd.p.site)
+  sd.p.site ~ dunif(0,5)
+  
+  # predictor coefficients (psi)
   for (j in 1:3) {
       beta.psi[j] ~ dnorm(0, 0.01)
-      #beta.p[j] ~ dnorm(0, 0.01)
-      beta.phi[j] ~ dnorm(0, 0.01)
+  }
+  
+  # predictor coefficients (gamma)
+  for (j in 1:3) {
       beta.gam[j] ~ dnorm(0, 0.01)
   }
+  
+  # predictor coefficients (gamma)
+  for (j in 1:3) {
+      beta.phi[j] ~ dnorm(0, 0.01)
+  }
 
-  ## Ecological model: state conditional on parameters
-  for (i in 1:nsite){
-    logit(psi[i,1]) <- mu.psi[i] + beta.psi[1]*elevation[i] + beta.psi[2]*distEdge[i] + beta.psi[3]*basalArea[i] + beta.psi[4]*recovery[i]
+
+  # Ecological model: state conditional on parameters
+  for(i in 1:nsite){
+    logit(psi[i,1]) <- alpha.psi[i] + beta.psi[1]*distEdge[i] + beta.psi[2]*basalArea[i] + beta.psi[3]*recovery[i]
     z[i,1] ~ dbern(psi[i,1])
+    lphi[i] ~ dnorm(0,tau.phi)#I(-12,12)
+    lgam[i] ~ dnorm(0,tau.gam)#I(-12,12)
     
-    for (k in 2:nyear){
-      logit(phi[i,k-1]) <- mu.phi[i] + beta.phi[1]*elevation[i] + beta.phi[2]*distEdge[i] + beta.phi[3]*basalArea[i] + beta.phi[4]*recovery[i]
-      logit(gamma[i,k-1]) <- mu.gam[i] + beta.gam[1]*elevation[i] + beta.gam[2]*distEdge[i] + beta.gam[3]*basalArea[i] + beta.gam[4]*recovery[i]
+    for(t in 2:nyear){
+      #logit(gamma[i,t]) <- mugam[t] + lgam[i] + alpha.gam[i] + beta.gam[1]*distEdge[i] + beta.gam[2]*basalArea[i] + beta.gam[3]*recovery[i]
+      #logit(phi[i,t]) <-   muphi[t] + lphi[i] + alpha.phi[i] + beta.phi[1]*distEdge[i] + beta.phi[2]*basalArea[i] + beta.phi[3]*recovery[i]
+      logit(gamma[i]) <- lgam[i] + beta.gam[1]*distEdge[i] + beta.gam[2]*basalArea[i] + beta.gam[3]*recovery[i]
+      logit(phi[i]) <-   lphi[i] + beta.phi[1]*distEdge[i] + beta.phi[2]*basalArea[i] + beta.phi[3]*recovery[i]
       
-      muZ[i,k] <- z[i,k-1]*phi[i,k-1] + (1-z[i,k-1])*gamma[i,k-1]
-      z[i,k] ~ dbern(muZ[i,k])
-      } #k
-   } #i
-   
-   ## Observation model
-   for (i in 1:nsite){
-     for (j in 1:nrep){
-       for (k in 1:nyear){
-         logit(p[i,j,k]) <- mu.p[i]
-         muy[i,j,k] <- z[i,k]*p[i,j,k]  # can only be detected if z=1
-         y[i,j,k] ~ dbern(muy[i,j,k])
-         } #k
-     } #j
-   } #i
-   
-   # Derived parameters: Sample and population occupancy, growth rate and turnover
-   #n.occ[1] <- sum(z[1:nsite,1])
-   #  psi[i,1] <- psi[i,1]
-   for (i in 1:nsite){
-     for (k in 2:nyear){
-       psi[i,k] <- psi[i,k-1]*phi[i,k-1] + (1-psi[i,k-1])*gamma[i,k-1]
-       #n.occ[k] <- sum(z[1:nsite,k])
-       growthr[i,k-1] <- psi[i,k]/psi[i,k-1]  # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
-       turnover[i,k-1] <- (1 - psi[i,k-1]) * gamma[i,k-1]/psi[i,k]
+      muZ[i,t] <- z[i,t-1]*phi[i] + (1-z[i,t-1])*gamma[i]
+      z[i,t] ~ dbern(muZ[i,t])
+    }
+  }
+  
+  # Observation model
+  for (i in 1:nsite){
+    for (j in 1:nrep){
+      for (t in 1:nyear){
+        logit(p[i,j,t]) <- alpha.p[i]
+        muy[i,j,t] <- z[i,t]*p[i,j,t]  # can only be detected if z=1
+        y[i,j,t] ~ dbern(muy[i,j,t])
+        } #k
+      } #j
+    } #i
+
+  # Derived parameters
+  for(i in 1:nyear){
+    psi.year[i] <- sum(z[1:nsite,i])
+  }
+  #for(i in 2:nyear){
+  #  growthr[i-1]<-psi.year[i]/psi.year[i-1]
+  #}
+  for(i in 1:nsite){
+     for(t in 2:nyear){
+       psi[i,t] <- psi[i,t-1]*phi[i] + (1-psi[i,t-1])*gamma[i]
+       growthr[i,t-1] <- psi[i,t]/psi[i,t-1]  # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
+       turnover[i,t-1] <- (1 - psi[i,t-1]) * gamma[i]/psi[i,t]
      } # k
     } #i
+
 }
 ",fill = TRUE)
 sink()
@@ -234,18 +260,19 @@ inits <- function(){
 
 # Parameters monitored
 params <- c(#"psi", "phi", "gamma", "p", "n.occ", "growthr", "turnover",
-            "psi", "phi", "gamma", "p", "growthr", "turnover",
-            "mu.psi", "mu.p", "mu.phi", "mu.gam", "beta.psi", "beta.phi", "beta.gam") 
+  "psi", "phi", "gamma", "p", "growthr", "turnover",
+  "alpha.psi", "alpha.p", "beta.psi", "beta.p", "beta.gam", "beta.phi", "a", "beta") 
 
 
 # MCMC settings
-ni <- 100000
+ni <- 25000
 nt <- 100
-nb <- 50000
+nb <- 250
 nc <- 3
 
 # Call JAGS from R (BRT 3 min)
 out <- jags(jags.data, inits, params, here("bin", "Dynocc_covariates.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+
 
 saveRDS(out, here("results", "pobscura_model.rds"))
 
@@ -279,8 +306,8 @@ out$BUGSoutput$summary[which(out$BUGSoutput$summary[,"Rhat"] > 1.1),]
 # ADD CODE
 
 # coefficients 
-coef.function <- function(x) {
-  coefs <- data.frame(x$BUGSoutput$summary[c("beta[1]", "beta[2]", "beta[3]"),]) 
+coef.psi <- function(x) {
+  coefs <- data.frame(x$BUGSoutput$summary[c("beta.psi[1]", "beta.psi[2]", "beta.psi[3]"),]) 
   coefs <- tibble(predictor=c("edges", "basal.area", "recovery"),
                   coeff=row.names(coefs), mean=coefs$mean, lower=coefs$X2.5., upper=coefs$X97.5.,
                   Rhat=coefs$Rhat, n.eff=coefs$n.eff)
@@ -290,7 +317,22 @@ coef.function <- function(x) {
   .GlobalEnv$coefs <- coefs
   coefs
 }
-coef.function(out)
+coef.psi(out)
+
+# coefficients 
+coef.p <- function(x) {
+  coefs <- data.frame(x$BUGSoutput$summary[c("beta.p[1]", "beta.p[2]", "beta.p[3]"),]) 
+  coefs <- tibble(predictor=c("edges", "basal.area", "recovery"),
+                  coeff=row.names(coefs), mean=coefs$mean, lower=coefs$X2.5., upper=coefs$X97.5.,
+                  Rhat=coefs$Rhat, n.eff=coefs$n.eff)
+  #inds <- data.frame(x$BUGSoutput$summary[c("w[1]", "w[2]", "w[3]", "w[4]", "w[5]", "w[6]"),]) # w
+  #inds <- tibble(w.mean=inds$mean)
+  #coefs <- bind_cols(coefs, inds)
+  .GlobalEnv$coefs <- coefs
+  coefs
+}
+coef.p(out)
+
 
 
 # table summarizing model parameters
@@ -327,201 +369,26 @@ Fig_effects(out)
 dev.off()
 coef.function(out)
 
-predictor.effects(out, original.point.elevation, 1)
-mtext("Elevation (m)", side=1, line=3)
+#predictor.effects(out, original.point.elevation, 1)
+#mtext("Elevation (m)", side=1, line=3)
 
 predictor.effects(out, log(original.distEdge), 1)
 mtext("Distance to edge (m)", side=1, line=3)
 
-predictor.effects(out, log(original.distWater), 3)
-mtext("Distance to water (m)", side=1, line=3)
+#predictor.effects(out, log(original.distWater), 3)
+#mtext("Distance to water (m)", side=1, line=3)
 
 predictor.effects(out, original.basalArea, 2)
 mtext("Basal area (m²/ha)", side=1, line=3)
 
-predictor.effects(out, original.recovery, 3)
+predictor.effects.psi(out, original.recovery, 3)
 mtext("Recovery time (years)", side=1, line=3)
+
+
 
 # save as jpeg:
 jpeg(here("results", "basalArea_effect.jpg"), width = 800, height = 400) # Open jpeg file
 predictor.effects(out, original.basalArea, 4)
 mtext("Basal area (m²/ha)", side=1, line=3)
 dev.off()
-
-
-#####################################
-#----- 4 - Dynamic occupancy model with site heterogeneity in all parameters -----
-
-# Specify model in JAGS language
-# using cerulean as a template
-sink(here("bin", "cerulean.jags"))
-cat("
-
-model {
-  
-  psi ~ dunif(0,1)
-  tau.gam ~ dgamma(.1,.1)
-  tau.phi ~ dgamma(.1,.1)
-  taup ~ dgamma(.1,.1)
-  sigma.phi <- 1/sqrt(tau.phi)
-  sigma.gam <- 1/sqrt(tau.gam)
-  sigma.p <- sqrt(1/taup)
-  
-  mup.prob[1] ~ dunif(0,1)
-  logit(mup[1]) <- mup.prob[1]
-  for(i in 2:nyear){
-    mup.prob[i] ~ dunif(0,1)
-    logit(mup[i]) <- mup.prob[i]
-    muphi.prob[i] ~ dunif(0,1)
-    logit(muphi[i]) <- muphi.prob[i]
-    mugam.prob[i] ~ dunif(0,1)
-    logit(mugam[i]) <- mugam.prob[i]
-  }
-  
-  for(i in 1:nsite){
-    lp[i] ~ dnorm(0,taup)I(-12,12)
-    for(t in 1:nyear){
-      logit(p[i,t])<-mup[t]+lp[i]
-    }
-  }
-  
-  for(i in 1:nsite){
-    z[i,1] ~ dbern(psi)
-    lphi[i] ~ dnorm(0,tau.phi)I(-12,12)
-    lgam[i] ~ dnorm(0,tau.gam)I(-12,12)
-    for(t in 2:nyear){
-      logit(gamma[i,t]) <- mugam[t] + lgam[i] 
-      logit(phi[i,t]) <- muphi[t] + lphi[i] 
-      muZ[i,t] <- z[i,t-1]*phi[i,t] + (1-z[i,t-1])*gamma[i,t]
-      z[i,t] ~ dbern(muZ[i,t])
-    }
-  }
-  
-  for(i in 1:nsite){
-    for (t in 1:nyear){
-      Px[i,t] <- z[i,t]*p[i,t]
-      x[i,t] ~ dbin(Px[i,t],50)
-    }
-  }
-  
-  for(i in 1:nyear){
-    psi.year[i] <- sum(z[1:nsite,i])
-  }
-  for(i in 2:nyear){
-    growthr[i-1] <- psi.year[i]/psi.year[i-1]
-  }
-
-}
-",fill = TRUE)
-sink()
-
-# Bundle data for JAGS
-jags.data <- list(y = y, nsite = dim(y)[1], nrep = dim(y)[2], nyear = dim(y)[3])
-
-
-# Initial values
-#inits <- function(){ list(z = apply(y, c(1, 3), max)) }
-inits <- function(){ 
-  z = apply(y, c(1, 3), max)
-  z[is.na(z)] <- 1
-  z <- list(z=z)
-}
-
-# Parameters monitored
-params <- c("psi", "phi", "gamma", "p", "n.occ", "growthr", "turnover")  
-
-# MCMC settings
-ni <- 5000
-nt <- 4
-nb <- 1000
-nc <- 3
-
-out1 <- jags(jags.data, inits, params, here("bin", "cerulean.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-
-# Summarize posteriors
-print(out1, dig = 3)
-# Estimated parameters:
-# gamma = colonization probability
-# growth = growth rate
-# n.occ = number of occupied sites in a give primary period (year)
-# p = detection probability
-# phi = survival probability
-# psi = occupancy probability
-# turnover
-
-# boxplot
-YEAR <- cbind(rep(1, out1$BUGSoutput$n.sims), rep(2, out1$BUGSoutput$n.sims), rep(3, out1$BUGSoutput$n.sims), rep(4, out1$BUGSoutput$n.sims))
-boxplot(out1$BUGSoutput$sims.list$psi ~ YEAR, col = "gray", ylab = "Occupancy probability", xlab = "Year", las = 1, frame.plot = FALSE)
-apply(apply(y, c(1, 3), max), 2, function(x){sum(!is.na(x))})
-
-# a better plot
-occ.trends <- function() {
-  # extract mean psi
-  mean.psi <- apply(out1$BUGSoutput$sims.list$psi, 2, mean) # subset yearly means
-  # lower CIs
-  quants <- c(0.025)
-  lower.psi <- apply( out1$BUGSoutput$sims.list$psi, 2 , quantile , probs = quants , na.rm = TRUE )
-  # upper CIs
-  quants2 <- c(0.95)
-  upper.psi <- apply( out1$BUGSoutput$sims.list$psi, 2 , quantile , probs = quants2 , na.rm = TRUE )
-  # join in a dataframe
-  df1 <- data.frame(cbind(mean.psi, lower.psi, upper.psi)) # join them in a dataframe
-  df1$year <- c(2016:2019) # as.numeric(rownames(df1))
-  
-  ggplot(data=df1, aes(x=year,y=mean.psi)) +
-    geom_ribbon(data=df1, aes(x=year, ymin=lower.psi, ymax=upper.psi), fill="grey", alpha=0.8) +
-    geom_line(size=0.5, alpha=1) +
-    geom_point(size=1.5, alpha=0.5) +
-    ylim(0,1) + 
-    scale_x_continuous(breaks=c(2016,2017,2018,2019)) +
-    theme(panel.background = element_blank(), axis.line = element_line(colour = "black")) +
-    theme(axis.text=element_text(size=12),axis.title=element_text(size=14)) + 
-    #theme(axis.title.x = element_blank()) +
-    #ggtitle() +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    xlab("Years") + 
-    ylab("Occupancy")
-}
-
-occ.trends()
-
-# save as jpeg
-jpeg(here("results", "occ_trends.jpg"), width = 600, height = 400) # Open jpeg file
-occ.trends()
-dev.off()
-
-survival.trends <- function() {
-  # extract mean psi
-  mean.phi <- apply(out1$BUGSoutput$sims.list$phi, 2, mean) # subset yearly means
-  # lower CIs
-  quants <- c(0.025)
-  lower.phi <- apply( out1$BUGSoutput$sims.list$phi, 2 , quantile , probs = quants , na.rm = TRUE )
-  # upper CIs
-  quants2 <- c(0.95)
-  upper.phi <- apply( out1$BUGSoutput$sims.list$phi, 2 , quantile , probs = quants2 , na.rm = TRUE )
-  # join in a dataframe
-  df1 <- data.frame(cbind(mean.phi, lower.phi, upper.phi)) # join them in a dataframe
-  df1$year <- as.numeric(rownames(df1))
-  
-  ggplot(data=df1, aes(x=year,y=mean.phi)) +
-    geom_ribbon(data=df1, aes(x=year, ymin=lower.phi, ymax=upper.phi), fill="grey", alpha=0.8) +
-    geom_line(size=0.5, alpha=1) +
-    geom_point(size=1.5, alpha=0.5) +
-    ylim(0,1) + 
-    scale_x_continuous(breaks=c(2016,2017,2018,2019)) +
-    theme(panel.background = element_blank(), axis.line = element_line(colour = "black")) +
-    theme(axis.text=element_text(size=12),axis.title=element_text(size=14)) + 
-    #theme(axis.title.x = element_blank()) +
-    #ggtitle() +
-    theme(plot.title = element_text(hjust = 0.5)) +
-    xlab("Years") + 
-    ylab("Occupancy")
-}
-
-survival.trends()
-
-
-
-
-
 

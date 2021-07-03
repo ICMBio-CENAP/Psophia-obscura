@@ -15,7 +15,7 @@ here <- here::here # to avoid confusion with "here" function from lubridate
 #source(here("bin", "camera trap analysis functions-10-06-18.R")) # using package here to build a path to the subdirectory "bin"
 source(here("bin", "ahumada_codes.R"))
 source(here("bin", "f-matrix-creator-experimental-probably-ok-but-need-check.R"))
-source(here("src", "fix_species_names.R")) # fix some names and remove "false" species
+source(here("bin", "fix_species_names.R")) # fix some names and remove "false" species
 
 
 ## ----Load data-------
@@ -193,16 +193,24 @@ head(block)
 # recovery time
 # use data from the Forest Ecology and Management paper
 covars_hmsc <- read.csv(here("data", "covars_hmsc.csv"))
+covars_hmsc$recovery <- as.numeric(covars_hmsc$recovery)
 recovery <- covars_hmsc[,c("Camera.Trap.Name", "recovery")]
+head(recovery)
 
 ## create a single covariates dataframe
-covars <- merge(cover, dist.water, by="Camera.Trap.Name")
-covars <- merge(covars, dist.edge, by="Camera.Trap.Name")
-covars <- merge(covars, elev, by="Camera.Trap.Name")
-covars <- merge(covars, trees, by="Camera.Trap.Name")
-covars <- merge(covars, block, by="Camera.Trap.Name")
-covars <- merge(covars, recovery, by="Camera.Trap.Name")
+covars <- merge(cover, dist.water, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, dist.edge, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, elev, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, trees, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, block, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, recovery, by="Camera.Trap.Name", all.x=TRUE)
 head(covars)
+dim(covars)
+covars[which(is.na(covars$recovery)),]
+# there are two NAs in recovery, the fix is the following
+covars[covars$Camera.Trap.Name=="CT-RBG-1-11", "recovery"] <- 6
+covars[covars$Camera.Trap.Name=="CT-RBG-2-82", "recovery"] <- 15
+covars[which(is.na(covars$recovery)),]
 
 # merge 
 dataRBG_species_Psophia_obscura$Camera.Trap.Name <- rownames(dataRBG_species_Psophia_obscura)
