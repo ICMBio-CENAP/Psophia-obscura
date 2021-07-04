@@ -3,42 +3,37 @@ model {
 
   ## Priors
   
-  #for (k in 1:(nyear-1)){
-  #  phi[k] ~ dunif(0, 1)
-  #  gamma[k] ~ dunif(0, 1)
-  #}
-
   # random block effects
   for (i in 1:nblock){
       mu.psi[i] ~ dnorm(0, tau.psi)
-      #mu.p[i] ~ dnorm(0, tau.p)
       mu.phi[i] ~ dnorm(0, tau.phi)
       mu.gam[i] ~ dnorm(0, tau.gam)
     } #i
   # hyperpriors
   tau.psi ~ dgamma(0.001,0.001)
-  #tau.p ~ dgamma(0.001,0.001)
   tau.phi ~ dgamma(0.001,0.001)
   tau.gam ~ dgamma(0.001,0.001)
   
-  # random block and year effects for p
-  for (i in 1:nblock){
-    for (k in 1:nyear){
-    mu.p[i,k] ~ dnorm(0, tau.p)
-    } #k
-  } #i
-  tau.p ~ dgamma(0.001,0.001)
-   
-
-  # effects (betas)
+  # coefficients
   for (j in 1:3) {
       beta.psi[j] ~ dnorm(0, 0.01)
-      #beta.p[j] ~ dnorm(0, 0.01)
       beta.phi[j] ~ dnorm(0, 0.01)
       beta.gam[j] ~ dnorm(0, 0.01)
   }
 
-  ## Ecological model: state conditional on parameters
+  # random block and year effects for p
+  for (i in 1:nblock){
+    for (k in 1:nyear){
+      eps.p[i,k] ~ dnorm(0, tau.p)
+    } #k
+   } #i
+   # hyperprior
+   tau.p ~ dgamma(0.001,0.001)
+
+
+  ## Likelihood
+  
+  # ecological model
   for (i in 1:nsite){
     logit(psi[i,1]) <- mu.psi[block[i]] + beta.psi[1]*distEdge[i] + beta.psi[2]*basalArea[i] + beta.psi[3]*recovery[i]
     z[i,1] ~ dbern(psi[i,1])
@@ -54,14 +49,22 @@ model {
    
    ## Observation model
    for (i in 1:nsite){
-     for (j in 1:nrep){
        for (k in 1:nyear){
-         logit(p[i,j,k]) <- mu.p[block[i],k]
-         muy[i,j,k] <- z[i,k]*p[i,j,k]  # can only be detected if z=1
-         y[i,j,k] ~ dbern(muy[i,j,k])
-         } #k
-     } #j
-   } #i
+         logit(p[i,k]) <- eps.p[block[i],k]
+         muy[i,k] <- z[i,k]*p[i,k]  # can only be detected if z=1
+         y[i,k] ~ dbin(muy[i,k], nrep[i,k])
+         
+   # Assess model fit using Chi-squared discrepancy
+   # Compute fit statistic E for observed data
+   eval[i,k] <- p[i,k] * z[i,k]   	# Expected values
+   E[i,k] <- pow((y[i,k] - eval[i,k]),2) / (eval[i,k] + 0.5)
+   # Generate replicate data and compute fit stats for them
+   y.new[i,k] ~ dbin(p[i,k], nrep[i,k])
+   E.new[i,k] <- pow((y.new[i,k] - eval[i,k]),2) / (eval[i,k] + 0.5)
+         
+      } #k
+    } #i
+
    
    # Derived parameters: Sample and population occupancy, growth rate and turnover
    #n.occ[1] <- sum(z[1:nsite,1])
