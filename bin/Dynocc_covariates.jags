@@ -51,10 +51,10 @@ model {
          
    # Assess model fit using Chi-squared discrepancy
    # Compute fit statistic E for observed data
-   #eval[i,k] <- dbin(psi[i,k], nrep[i,k])   	# Expected values
+   #eval[i,k] <- p[i,k]*z[i,k]  # Expected values
    #E[i,k] <- pow((y[i,k] - eval[i,k]),2) / (eval[i,k] + 0.5)
    # Generate replicate data and compute fit stats for them
-   #y.new[i,k] ~ dbin(p[i,k], nrep[i,k])
+   #y.new[i,k] ~ dbin(muy[i,k], nrep[i,k])
    #E.new[i,k] <- pow((y.new[i,k] - eval[i,k]),2) / (eval[i,k] + 0.5)
          
       } #k
@@ -70,5 +70,7 @@ model {
        turnover[i,k-1] <- (1 - psi[i,k-1]) * gamma[i,k-1]/psi[i,k]
      } # k
     } #i
+    #fit <- sum(E[,])
+    #fit.new <- sum(E.new[,])
 }
 

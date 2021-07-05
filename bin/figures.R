@@ -186,12 +186,12 @@ predictor.effects.gam <- function(x, original.predictor, coef) {
   original.pred <- round(seq(min(original.predictor), max(original.predictor), length.out = 30),2)
   pred <- round((original.pred - mean(original.pred))/sd(original.pred), 2)
   #pred <- original.pred # it was already standardized
-  gam.pred <- plogis( mean(x$BUGSoutput$sims.list$mu.gam) +
+  gam.pred <- plogis( mean(x$BUGSoutput$sims.list$alpha.gam) +
                         mean(x$BUGSoutput$sims.list$beta.gam[, coef]) * pred )
   
   array.gam.pred <- array(NA, dim = c(length(pred), mcmc.sample))
   for (i in 1:mcmc.sample){
-    array.gam.pred[,i] <- plogis( x$BUGSoutput$sims.list$mu.gam[i] +
+    array.gam.pred[,i] <- plogis( x$BUGSoutput$sims.list$alpha.gam[i] +
                                     x$BUGSoutput$sims.list$beta.gam[i,coef] * pred )
   }
   

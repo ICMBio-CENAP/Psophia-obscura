@@ -21,7 +21,7 @@ source(here("bin", "figures.R"))
 jags.data <- read_rds(here("data", "psophia_data.rds"))
 attach(jags.data)
 
-pobscura <- read_rds(here("data", "pobscura.rds")) # for figures in the end
+pobscura <- read_rds(here("data", "pobscura.rds"))
 
 
 #----- 4 - Dynamic occupancy model with covariates -----
@@ -40,11 +40,30 @@ model {
   #alpha.p ~ dnorm(0, 0.01)
   
   # coefficients
+  #for (j in 1:3) {
+  #    beta.psi[j] ~ dnorm(0, 0.01)
+  #    beta.phi[j] ~ dnorm(0, 0.01)
+  #    beta.gam[j] ~ dnorm(0, 0.01)
+  #}
+  
+  # prior for coefficients and inclusion (w) indicator for model selection
+  # Kuo & Mallick method as implemented by O'Hara & Sillanpää 2009 (supp. material)
   for (j in 1:3) {
-      beta.psi[j] ~ dnorm(0, 0.01)
-      beta.phi[j] ~ dnorm(0, 0.01)
-      beta.gam[j] ~ dnorm(0, 0.01)
+      w.psi[j] ~ dbern(0.5)  # inclusion parameter for variable selection
+      betaT.psi[j] ~ dnorm(0, tauBeta)
+      beta.psi[j] <- w.psi[j]*betaT.psi[j]
+      
+      w.phi[j] ~ dbern(0.5)  # inclusion parameter for variable selection
+      betaT.phi[j] ~ dnorm(0, tauBeta)
+      beta.phi[j] <- w.phi[j]*betaT.phi[j]
+      
+      w.gam[j] ~ dbern(0.5)  # inclusion parameter for variable selection
+      betaT.gam[j] ~ dnorm(0, tauBeta)
+      beta.gam[j] <- w.gam[j]*betaT.gam[j]
   }
+  tauBeta <- pow(sdBeta,-2)
+  sdBeta ~ dunif(0,20)
+
   
   # random year effects for p
   for (i in 1:nsite){
@@ -119,6 +138,8 @@ inits <- function(){
 # Parameters monitored
 params <- c("z", "psi", "phi", "gamma", "p",
             "alpha.psi", "alpha.phi", "alpha.gam",
+            "w.psi", "w.phi", "w.gam",
+            "betaT.psi", "betaT.phi", "betaT.gam",
             "beta.psi", "beta.phi", "beta.gam",
             "eps",
             "growthr", "turnover")
@@ -126,8 +147,8 @@ params <- c("z", "psi", "phi", "gamma", "p",
 
 
 # MCMC settings
-ni <- 100000
-nt <- 100
+ni <- 150000
+nt <- 200
 nb <- 50000
 #ni <- 5000
 #nt <- 10
@@ -142,6 +163,8 @@ jags.data$distWater <- NULL
 
 # Call JAGS from R (BRT 3 min)
 out <- jags(jags.data, inits, params, here("bin", "Dynocc_covariates.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
+
+
 saveRDS(out, here("results", "pobscura_model.rds"))
 
 
