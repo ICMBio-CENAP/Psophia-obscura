@@ -85,12 +85,12 @@ predictor.effects.psi <- function(x, original.predictor, coef) {
   original.pred <- round(seq(min(original.predictor), max(original.predictor), length.out = 30),2)
   pred <- round((original.pred - mean(original.pred))/sd(original.pred), 2)
   #pred <- original.pred # it was already standardized
-  psi.pred <- plogis( mean(x$BUGSoutput$sims.list$mu.psi) +
+  psi.pred <- plogis( mean(x$BUGSoutput$sims.list$alpha.psi) +
                         mean(x$BUGSoutput$sims.list$beta.psi[, coef]) * pred )
   
   array.psi.pred <- array(NA, dim = c(length(pred), mcmc.sample))
   for (i in 1:mcmc.sample){
-    array.psi.pred[,i] <- plogis( x$BUGSoutput$sims.list$mu.psi[i] +
+    array.psi.pred[,i] <- plogis( x$BUGSoutput$sims.list$alpha.psi[i] +
                                     x$BUGSoutput$sims.list$beta.psi[i,coef] * pred )
   }
   
