@@ -229,3 +229,12 @@ names(pobscura)[1] <- "cams"
 # Save to disk
 #saveRDS(Pobscura2017, here("data","Pobscura2017.rds"))
 saveRDS(pobscura, here("data","pobscura.rds"))
+
+
+bla1 <- data.frame(cams)
+names(bla1) <- "Camera.Trap.Name"
+bla3 <- merge(bla1, dataRBG[,c("Camera.Trap.Name", "Latitude", "Longitude")], by="Camera.Trap.Name")
+bla3
+bla4 <- distinct(bla3)
+bla4
+write.csv(bla4, here("data", "psophia-cams.csv"))

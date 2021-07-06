@@ -120,12 +120,12 @@ predictor.effects.p <- function(x, original.predictor, coef) {
   original.pred <- round(seq(min(original.predictor), max(original.predictor), length.out = 30),2)
   pred <- round((original.pred - mean(original.pred))/sd(original.pred), 2)
   #pred <- original.pred # it was already standardized
-  p.pred <- plogis( mean(x$BUGSoutput$sims.list$mu.p) +
+  p.pred <- plogis( mean(x$BUGSoutput$sims.list$alpha.p) +
                         mean(x$BUGSoutput$sims.list$beta.p[, coef]) * pred )
   
   array.p.pred <- array(NA, dim = c(length(pred), mcmc.sample))
   for (i in 1:mcmc.sample){
-    array.p.pred[,i] <- plogis( x$BUGSoutput$sims.list$mu.p[i] +
+    array.p.pred[,i] <- plogis( x$BUGSoutput$sims.list$alpha.p[i] +
                                     x$BUGSoutput$sims.list$beta.p[i,coef] * pred )
   }
   
@@ -141,6 +141,7 @@ predictor.effects.p <- function(x, original.predictor, coef) {
   #mtext(expression(p), side=2, line=3)
 }
 #predictor.effects(out, original.elevation, "a1")
+
 
 #-----
 Fig_effects.psi <- function(x) {
