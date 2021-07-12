@@ -43,15 +43,38 @@ apply(out$BUGSoutput$sims.list$psi, 3, mean)
 
 phiall <- paste("phi[", 1:(nyear-1), "]", sep="")
 #print(out$BUGSoutput$summary[phiall, c(1, 2, 3, 7)], dig = 3)
-apply(out$BUGSoutput$sims.list$phi, 3, mean) # values are equal because phi was constant
+apply(out$BUGSoutput$sims.list$phi, 2, mean) # values are equal because phi was constant
 
 gammaall <- paste("gamma[", 1:(nyear-1), "]", sep="")
 #print(out$BUGSoutput$summary[gammaall, c(1, 2, 3, 7)], dig = 3)
-apply(out$BUGSoutput$sims.list$gamma, 3, mean) # values are equal because gamma was constant
+apply(out$BUGSoutput$sims.list$gamma, 2, mean) # values are equal because gamma was constant
 
 pall <- paste("p[", 1:nyear, "]", sep="")
 #print(out$BUGSoutput$summary[pall, c(1, 2, 3, 7)], dig = 3)
 apply(out$BUGSoutput$sims.list$p, 3, mean)
+
+# growthr
+str(out$BUGSoutput$sims.list$growthr)
+summary(out$BUGSoutput$sims.list$growthr) # some large values are pulling the mean up, use median instead 
+length(which(out$BUGSoutput$sims.list$growthr > 5)) # how many large values?
+median_growthr <- tibble(median=median(out$BUGSoutput$sims.list$growthr),
+                         lower=quantile(out$BUGSoutput$sims.list$growthr, prob=0.025),
+                         upper=quantile(out$BUGSoutput$sims.list$growthr, prob=0.975) )
+median_growthr
+median_site_growthr <- apply(out$BUGSoutput$sims.list$growthr, 2, median) # mean growth rate per site
+hist(median_site_growthr)
+median_year_growthr <- round(apply(out$BUGSoutput$sims.list$growthr, 3, median), 2) # mean growth rate per site
+median_year_growthr
+growthr_table <- tibble(year=c(2016, 2017, 2018),
+                  mean=apply(out$BUGSoutput$sims.list$growthr, 3, mean),
+                  median=apply(out$BUGSoutput$sims.list$growthr, 3, median),
+                  LCI=apply(out$BUGSoutput$sims.list$growthr, 3, quantile, prob=.025),
+                  UCI=apply(out$BUGSoutput$sims.list$growthr, 3, quantile, prob=.975) )
+growthr_table
+with(growthr_table, plot(year, median, type="b", ylim=c(0,4), las=1, xaxt = "n") )
+axis(1, at = c(2016, 2017, 2018), labels = seq(2016,2018))
+segments(c(2016, 2017, 2018), growthr_table$LCI, c(2016, 2017, 2018), growthr_table$UCI)
+abline(h=1, lty=2)
 
 #plot(1:K, out$BUGSoutput$mean$psi, type = "l", xlab = "Year", ylab = "Occupancy probability", col = "red", xlim = c(0,K+1), ylim = c(0,1), lwd = 2, lty = 1, frame.plot = FALSE, las = 1)
 #segments(1:K, out$BUGSoutput$summary[psiall,3], 1:K, out$BUGSoutput$summary[psiall,7], col = "blue", lwd = 1)
@@ -64,7 +87,7 @@ parameters.table <- function(x) {
                                     round(mean(x$BUGSoutput$sims.list$phi), 2),
                                     round(mean(x$BUGSoutput$sims.list$gamma), 2),
                                     round(mean(x$BUGSoutput$sims.list$turnover), 2),
-                                    round(mean(x$BUGSoutput$sims.list$growthr), 2)),
+                                    round(median(x$BUGSoutput$sims.list$growthr), 2)),
                              lower=c(round(quantile(x$BUGSoutput$sims.list$psi, probs=0.025), 3),
                                      round(quantile(x$BUGSoutput$sims.list$p, probs=0.025), 3),
                                      round(quantile(x$BUGSoutput$sims.list$phi, probs=0.025), 3),
@@ -86,9 +109,8 @@ parameters.table(out)
 # coefficients 
 coef.function <- function(x) {
   coefs <- data.frame(x$BUGSoutput$summary[c("beta.psi[1]", "beta.psi[2]", "beta.psi[3]",
-                                             "beta.phi[1]", "beta.phi[2]", "beta.phi[3]",
-                                             "beta.gam[1]", "beta.gam[2]", "beta.gam[3]"),])
-  coefs <- tibble(predictor=rep(c("elevation", "basal.area", "recovery"), 3),
+                                             "beta.p[1]", "beta.p[2]", "beta.p[3]"),])
+  coefs <- tibble(predictor=rep(c("elevation", "basal.area", "recovery"), 2),
                   coeff=row.names(coefs), mean=coefs$mean, lower=coefs$X2.5., upper=coefs$X97.5.,
                   Rhat=coefs$Rhat, n.eff=coefs$n.eff)
   .GlobalEnv$coefs <- coefs
@@ -96,14 +118,13 @@ coef.function <- function(x) {
 }
 coef.function(out)
 
-
 # check distribution of coefficients fos significant effects
 hist(out$BUGSoutput$sims.list$beta.psi[,2], xlab="Basal area effect on psi", main="" )
 abline(v=0, col="red", lty=2)
 hist(out$BUGSoutput$sims.list$beta.psi[,3], xlab="Recovery time effect on psi", main="" )
 abline(v=0, col="red", lty=2)
-hist(out$BUGSoutput$sims.list$beta.phi[,3], xlab="Recovery time effect on phi", main="" )
-abline(v=0, col="red", lty=2)
+#hist(out$BUGSoutput$sims.list$beta.phi[,3], xlab="Recovery time effect on phi", main="" )
+#abline(v=0, col="red", lty=2)
 
 # compare psi across blocks
 str(out$BUGSoutput$sims.list$psi)
@@ -227,11 +248,11 @@ dev.off()
 
 # plot growth rate trends with uncertainty
 plot.growthr.temporal.trends <- function() {
-  mean_growthr <- apply(out$BUGSoutput$sims.list$growthr, 3, mean)
+  mean_growthr <- apply(out$BUGSoutput$sims.list$growthr, 3, median)
   mcmc.sample <- out$BUGSoutput$n.sims
   array.growthr <- array(NA, dim = c(nyear-1, mcmc.sample))
   for (i in 1:mcmc.sample){
-    array.growthr[,i] <- apply(out$BUGSoutput$sims.list$growthr[i,,], 2,mean)
+    array.growthr[,i] <- apply(out$BUGSoutput$sims.list$growthr[i,,], 2,median)
   }
   # Plot for a subsample of MCMC draws
   sub.set <- sort(sample(1:mcmc.sample, size = 200))

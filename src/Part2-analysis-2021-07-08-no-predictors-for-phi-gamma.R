@@ -69,12 +69,14 @@ for (i in 1:nsite){
   } #i
 
 # Derived parameters: Sample and population occupancy, growth rate and turnover
-#psi[i,1] <- psi[i,1]
+#psi[i,1] <- psi[i,1] # turned off because it was already defined in the likelihood
 for (i in 1:nsite){
   for (k in 2:nyear){
     psi[i,k] <- psi[i,k-1]*phi[k-1] + (1-psi[i,k-1])*gamma[k-1]
     growthr[i,k-1] <- psi[i,k]/psi[i,k-1] # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
+    #growthr[k-1] <- mean(psi[,k])/mean(psi[,k-1])
     turnover[i,k-1] <- (1 - psi[i,k-1]) * gamma[k-1]/psi[i,k]
+    #turnover[k-1] <- (1 - mean(psi[,k-1])) * gamma[k-1]/mean(psi[,k])
     } # k
   } #i
 }
@@ -95,7 +97,7 @@ inits <- function(){
 params <- c("z", "psi", "phi", "gamma", "p",
             "alpha.psi", "alpha.p",
             "beta.psi", "beta.p",
-            "eps.p",
+            #"eps.p",
             "growthr", "turnover")#,
 #"fit", "fit.new")
 
@@ -107,7 +109,7 @@ nb <- 50000
 #ni <- 25000
 #nt <- 10
 #nb <- 1000
-nc <- 3
+#nc <- 3
 
 # remove unused variables from jags.data
 jags.data$block <- NULL
@@ -132,3 +134,4 @@ coef.function <- function(x) {
   coefs
 }
 coef.function(out)
+
