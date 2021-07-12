@@ -6,3 +6,4 @@
 *.csv
 *.xlsx
 pobscura_model.rds
+*.rds
