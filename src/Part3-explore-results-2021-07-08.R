@@ -54,8 +54,8 @@ pall <- paste("p[", 1:nyear, "]", sep="")
 apply(out$BUGSoutput$sims.list$p, 3, mean)
 
 # growthr
-str(out$BUGSoutput$sims.list$growthr)
-summary(out$BUGSoutput$sims.list$growthr) # some large values are pulling the mean up, use median instead 
+#str(out$BUGSoutput$sims.list$growthr)
+#summary(out$BUGSoutput$sims.list$growthr) # some large values are pulling the mean up, use median instead 
 length(which(out$BUGSoutput$sims.list$growthr > 5)) # how many large values?
 median_growthr <- tibble(median=median(out$BUGSoutput$sims.list$growthr),
                          lower=quantile(out$BUGSoutput$sims.list$growthr, prob=0.025),
@@ -71,6 +71,23 @@ growthr_table <- tibble(year=c(2016, 2017, 2018),
                   LCI=apply(out$BUGSoutput$sims.list$growthr, 3, quantile, prob=.025),
                   UCI=apply(out$BUGSoutput$sims.list$growthr, 3, quantile, prob=.975) )
 growthr_table
+# some large values are pulling up the mean growthr
+# let us calculate it in another way:  
+dim(out$BUGSoutput$sims.list$psi)
+table_psi_growth <- tibble(site=1:61,
+                    psi16=apply(out$BUGSoutput$sims.list$psi[,,1], 2, mean),
+                    psi17=apply(out$BUGSoutput$sims.list$psi[,,2], 2, mean),
+                    psi18=apply(out$BUGSoutput$sims.list$psi[,,3], 2, mean),
+                    psi19=apply(out$BUGSoutput$sims.list$psi[,,4], 2, mean),
+                    growthr16=psi17/psi16,
+                    growthr17=psi18/psi17,
+                    growthr18=psi19/psi18
+                    )
+table_psi_growth
+colMeans(table_psi_growth)
+summary(table_psi_growth)
+
+
 with(growthr_table, plot(year, median, type="b", ylim=c(0,4), las=1, xaxt = "n") )
 axis(1, at = c(2016, 2017, 2018), labels = seq(2016,2018))
 segments(c(2016, 2017, 2018), growthr_table$LCI, c(2016, 2017, 2018), growthr_table$UCI)

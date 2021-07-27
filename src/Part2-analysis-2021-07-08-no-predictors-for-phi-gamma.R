@@ -73,7 +73,7 @@ for (i in 1:nsite){
 for (i in 1:nsite){
   for (k in 2:nyear){
     psi[i,k] <- psi[i,k-1]*phi[k-1] + (1-psi[i,k-1])*gamma[k-1]
-    growthr[i,k-1] <- psi[i,k]/psi[i,k-1] # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
+    growthr[i,k-1] <- mean(psi[i,k])/mean(psi[i,k-1]) # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
     #growthr[k-1] <- mean(psi[,k])/mean(psi[,k-1])
     turnover[i,k-1] <- (1 - psi[i,k-1]) * gamma[k-1]/psi[i,k]
     #turnover[k-1] <- (1 - mean(psi[,k-1])) * gamma[k-1]/mean(psi[,k])
@@ -103,13 +103,13 @@ params <- c("z", "psi", "phi", "gamma", "p",
 
 
 # MCMC settings
-ni <- 100000
+ni <- 150000
 nt <- 100
-nb <- 50000
+nb <- 75000
 #ni <- 25000
 #nt <- 10
 #nb <- 1000
-#nc <- 3
+nc <- 3
 
 # remove unused variables from jags.data
 jags.data$block <- NULL

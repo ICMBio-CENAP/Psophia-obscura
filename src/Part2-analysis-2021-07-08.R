@@ -87,6 +87,7 @@ for (i in 1:nsite){
   for (k in 2:nyear){
     psi[i,k] <- psi[i,k-1]*phi[i,k-1] + (1-psi[i,k-1])*gamma[i,k-1]
     growthr[i,k-1] <- psi[i,k]/psi[i,k-1] # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
+    mean_growthr[k-1] <- mean(psi[i,k])/mean(psi[i,k-1])
     turnover[i,k-1] <- (1 - psi[i,k-1]) * gamma[i,k-1]/psi[i,k]
     } # k
   } #i
@@ -111,7 +112,7 @@ params <- c("z", "psi", "phi", "gamma", "p",
             "beta.psi", "beta.phi", "beta.gam", "beta.p",
             #"w.psi", "w.phi", "w.gam", #"w.p",
             "eps",
-            "growthr", "turnover")#,
+            "growthr", "mean_growthr", "turnover")#,
 #"fit", "fit.new")
 
 
