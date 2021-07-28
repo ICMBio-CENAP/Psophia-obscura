@@ -35,7 +35,7 @@ source(here("bin", "figures.R"))
 
 pobscura <- readRDS(here("data", "pobscura.rds"))
 names(pobscura)
-y <- array(c(unlist(pobscura[,2:11]), unlist(pobscura[,12:21]), unlist(pobscura[,22:31]), unlist(pobscura[,32:41])), c(61, 10, 4))
+y <- array(c(unlist(pobscura[,2:15]), unlist(pobscura[,16:29]), unlist(pobscura[,30:43]), unlist(pobscura[,44:57])), c(61, 14, 4))
 str(y)
 
 R <- dim(y)[1]
@@ -56,7 +56,7 @@ y2019 <- rowSums(y[,,4], na.rm=TRUE)
 y <- data.frame(cbind(y2016, y2017, y2018, y2019))
 head(y)
 
-SiteCovs <- pobscura[,42:50]
+SiteCovs <- pobscura[,58:66]
 names(SiteCovs)
 original.landCover <- SiteCovs[,1]
 original.distWater <- SiteCovs[,2]#/1000 # convert from metres to km
