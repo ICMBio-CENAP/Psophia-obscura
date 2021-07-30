@@ -36,16 +36,6 @@ dim(out$BUGSoutput$summary[which(out$BUGSoutput$summary[,"Rhat"] > 1.1),]) # how
 
 ##----- Initial psi and p
 
-psiall <- round(apply(out$BUGSoutput$sims.list$psi, 3, mean), 2)
-names(psiall) <- paste("psi[", 1:nyear, "]", sep="")
-psiall
-
-# p
-pall <- round(apply(out$BUGSoutput$sims.list$p, 3, mean), 2)
-names(pall) <- paste("p[", 1:nyear, "]", sep="")
-pall
-
-
 # coefficients 
 coef.function <- function(x) {
   coefs <- data.frame(x$BUGSoutput$summary[c("beta.psi[1]", "beta.psi[2]", "beta.psi[3]", "beta.psi[4]"),])
@@ -70,13 +60,14 @@ coef.function(out)
 predictor.effects.psi(out, pobscura$recovery, 4)
 mtext("Recovery time (years)", side=1, line=3)
 # save jpeg
-jpeg(here("results", "recovery_effect_psi.jpg"), res=120, width = 800, height = 600)
+jpeg(here("results", "recovery_effect_psi.jpg"), res=120, width = 800, height = 500)
 predictor.effects.psi(out, pobscura$recovery, 4)
 mtext("Recovery time (years)", side=1, line=3)
 dev.off()
 
 
 # alternative: check posterior distribution of coefficients estimate
+jpeg(here("results", "all_coefficients.jpg"))
 par(mfrow=c(2,2))
 hist(out$BUGSoutput$sims.list$beta.psi[,1], xlab="Elevation effect on psi", main="" )
 abline(v=0, col="red", lty=2)
@@ -90,6 +81,15 @@ dev.off()
 
 ##----- temporal trends
 
+psiall <- round(apply(out$BUGSoutput$sims.list$psi, 3, mean), 2)
+names(psiall) <- paste("psi[", 1:nyear, "]", sep="")
+psiall
+
+# p
+pall <- round(apply(out$BUGSoutput$sims.list$p, 3, mean), 2)
+names(pall) <- paste("p[", 1:nyear, "]", sep="")
+pall
+
 # yearly psi site means
 psi.site <- tibble(array=(jags.data$Ind+1),
                    y.2016=apply(out$BUGSoutput$sims.list$psi[,,1], 2, mean),
@@ -97,6 +97,8 @@ psi.site <- tibble(array=(jags.data$Ind+1),
                    y.2018=apply(out$BUGSoutput$sims.list$psi[,,3], 2, mean),
                    y.2019=apply(out$BUGSoutput$sims.list$psi[,,4], 2, mean) )
 psi.site
+summary(psi.site)
+
 means <- apply(psi.site[2:5], 2, mean)
 lower <- apply(psi.site[2:5], 2, quantile, probs=c(0.025))
 upper <- apply(psi.site[2:5], 2, quantile, probs=c(0.975))
@@ -126,30 +128,8 @@ plot.psi.temporal.trends <- function() {
 plot.psi.temporal.trends()
 
 
-# plot Z (occurrence) trends with uncertainty
-plot.z.temporal.trends <- function() {
-  mean_z <- apply(out$BUGSoutput$sims.list$z[,,], 3, mean)
-  mcmc.sample <- out$BUGSoutput$n.sims
-  array.z <- array(NA, dim = c(nyear, mcmc.sample))
-  for (i in 1:mcmc.sample){
-    array.z[,i] <- apply(out$BUGSoutput$sims.list$z[i,,], 2, mean)
-  }
-  # Plot for a subsample of MCMC draws
-  sub.set <- sort(sample(1:mcmc.sample, size = 200))
-  plot(2016:2019, mean_z, main = "", ylab = expression(z), xlab = "", 
-       ylim=c(0, 1), type = "l", lwd = 2, las=1, xaxt="n", frame.plot = FALSE)
-  for (i in sub.set){
-    lines(2016:2019, array.z[,i], type = "l", lwd = 1, col = "gray")
-  }
-  lines(2016:2019, mean_z, type = "l", lwd = 2, col = "blue")
-  axis(1, at = c(2016, 2017, 2018, 2019), labels = seq(2016,2019))
-}
-plot.z.temporal.trends()
-
-
-
 # save jpeg
-jpeg(here("results", "psi_temporal_trends.jpg"), res=120, width = 800, height = 600)
+jpeg(here("results", "psi_temporal_trends.jpg"), res=120, width = 800, height = 500)
 plot.psi.temporal.trends()
 dev.off()
 
@@ -169,14 +149,20 @@ abline(h=1, lty=2)
 
 
 # survival (phi)
-phiall <- round(apply(out$BUGSoutput$sims.list$phi, 2, mean), 2)
+phiall_mean <- round(apply(out$BUGSoutput$sims.list$phi, 2, mean), 2)
+phiall_LCI <- round(apply(out$BUGSoutput$sims.list$phi, 2, quantile, prob=0.025), 2)
+phiall_UCI <- round(apply(out$BUGSoutput$sims.list$phi, 2, quantile, prob=0.975), 2)
+phiall <- data.frame(rbind(phiall_mean, phiall_LCI, phiall_UCI))
 names(phiall) <- paste("phi[", 1:(nyear-1), "]", sep="")
 phiall
 
 # colonization (gamma)
-gammahiall <- round(apply(out$BUGSoutput$sims.list$gamma, 2, mean), 2)
-names(gammahiall) <- paste("gamma[", 1:(nyear-1), "]", sep="")
-gammahiall
+gamma_mean <- round(apply(out$BUGSoutput$sims.list$gamma, 2, mean), 2)
+gamma_LCI <- round(apply(out$BUGSoutput$sims.list$gamma, 2, quantile, prob=0.025), 2)
+gamma_UCI <- round(apply(out$BUGSoutput$sims.list$gamma, 2, quantile, prob=0.975), 2)
+gamma <- data.frame(rbind(gamma_mean, gamma_LCI, gamma_UCI))
+names(gamma) <- paste("gamma[", 1:(nyear-1), "]", sep="")
+gamma
 
 
 #--------------------------

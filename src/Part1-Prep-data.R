@@ -97,6 +97,11 @@ temp1 %>%
 temp1 %>%
   group_by(Sampling.Event) %>%
   filter(bin == "Psophia obscura") %>%
+  summarize(mean_group = mean(Number.of.Animals), min = min(Number.of.Animals), max = max(Number.of.Animals),
+            lci=quantile(Number.of.Animals, probs=0.025), uci=quantile(Number.of.Animals, probs=0.975))
+
+temp1 %>%
+  filter(bin == "Psophia obscura") %>%
   summarize(mean_group = mean(Number.of.Animals), min = min(Number.of.Animals), max = max(Number.of.Animals))
 
 temp2 <- temp1 %>%
@@ -104,6 +109,14 @@ temp2 <- temp1 %>%
   filter(bin == "Psophia obscura")
 hist(as.numeric(temp2$Number.of.Animals))
 
+# naive occupancy in 2016
+naive.occ <- temp1 %>%
+  group_by(Camera.Trap.Name) %>%
+  filter(Sampling.Event == 2016) %>%
+  filter(bin == "Psophia obscura") %>%
+  count()
+naive.occ$n[naive.occ$n > 1] <- 1
+sum(naive.occ$n)/61
 
 #----- 4 - Extract binary presence/absence matrices for each species
 species <- unique(dataRBG$bin)
