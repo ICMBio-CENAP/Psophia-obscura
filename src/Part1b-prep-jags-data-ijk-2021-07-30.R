@@ -35,34 +35,28 @@ source(here("bin", "figures.R"))
 
 pobscura <- readRDS(here("data", "pobscura.rds"))
 names(pobscura)
-# if using 5-day occasion:
-#y <- array(c(unlist(pobscura[,2:15]), unlist(pobscura[,16:29]), unlist(pobscura[,30:43]), unlist(pobscura[,44:57])), c(61, 14, 4))
-# if using 10-day occasion:
-y <- array(c(unlist(pobscura[,2:13]), unlist(pobscura[,14:25]), unlist(pobscura[,26:37]), unlist(pobscura[,38:49])), c(61, 12, 4))
+y <- array(c(unlist(pobscura[,2:15]), unlist(pobscura[,16:29]), unlist(pobscura[,30:43]), unlist(pobscura[,44:57])), c(61, 14, 4))
 str(y)
 
 R <- dim(y)[1]
 J <- dim(y)[2]
 #K <- dim(y)[3]
 
-j2016 <- as.numeric(rowSums(!is.na(y[,,1])))
-j2017 <- as.numeric(rowSums(!is.na(y[,,2])))
-j2018 <- as.numeric(rowSums(!is.na(y[,,3])))
-j2019 <- as.numeric(rowSums(!is.na(y[,,4])))
-nrep <- data.frame(cbind(j2016, j2017, j2018, j2019))
-head(nrep)
+#j2016 <- as.numeric(rowSums(!is.na(y[,,1])))
+#j2017 <- as.numeric(rowSums(!is.na(y[,,2])))
+#j2018 <- as.numeric(rowSums(!is.na(y[,,3])))
+#j2019 <- as.numeric(rowSums(!is.na(y[,,4])))
+#nrep <- data.frame(cbind(j2016, j2017, j2018, j2019))
+#head(nrep)
 
-y2016 <- rowSums(y[,,1], na.rm=TRUE)
-y2017 <- rowSums(y[,,2], na.rm=TRUE)
-y2018 <- rowSums(y[,,3], na.rm=TRUE)
-y2019 <- rowSums(y[,,4], na.rm=TRUE)
-y <- data.frame(cbind(y2016, y2017, y2018, y2019))
-head(y)
+#y2016 <- rowSums(y[,,1], na.rm=TRUE)
+#y2017 <- rowSums(y[,,2], na.rm=TRUE)
+#y2018 <- rowSums(y[,,3], na.rm=TRUE)
+#y2019 <- rowSums(y[,,4], na.rm=TRUE)
+#y <- data.frame(cbind(y2016, y2017, y2018, y2019))
+#head(y)
 
-# if using 5-day occasion:
-#SiteCovs <- pobscura[,58:66]
-# if using 10-day occasion:
-SiteCovs <- pobscura[,50:58]
+SiteCovs <- pobscura[,58:66]
 names(SiteCovs)
 original.landCover <- SiteCovs[,1]
 original.distWater <- SiteCovs[,2]#/1000 # convert from metres to km
@@ -170,6 +164,6 @@ psophia_data <- list(y=y, nrep = nrep, nsite=dim(y)[1], nyear=dim(y)[2],
                      recovery=recovery)
 str(psophia_data)
 
-saveRDS(psophia_data, here("data", "psophia_data.rds"))
+saveRDS(psophia_data, here("data", "psophia_data_ijk.rds"))
 
 

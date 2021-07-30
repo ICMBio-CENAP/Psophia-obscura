@@ -20,6 +20,9 @@ source(here("bin", "figures.R"))
 jags.data <- read_rds(here("data", "psophia_data.rds"))
 #jags.data$Ind <- as.numeric(ifelse(jags.data$block == 2, 1, 0)) # recode blocks, B1=0; B2=1)
 #attach(jags.data)
+with(jags.data, cor(cbind(block, elevation, range.elevation, distEdge, distWater, basalArea, recovery)))
+# use elevation, distEdge, distWater, basalArea and recovery
+jags.data$site <- seq(1:61)
 
 #----- 4 - Dynamic occupancy model with covariates -----
 
@@ -31,19 +34,28 @@ model {
 ## Priors
 
 # intercepts
-alpha.psi ~ dnorm(0, 0.01)
-alpha.p ~ dnorm(0, 0.01)
+#alpha.psi ~ dnorm(0, 0.01)
+#alpha.p ~ dnorm(0, 0.01)
 
-# coefficients
-for (j in 1:3) {
+# random site effects
+for (i in 1:nsite){
+   alpha.psi[i] ~ dnorm(mu.psi, tau.alpha.psi)
+   alpha.p[i] ~ dnorm(mu.p, tau.alpha.p)
+   }
+mu.psi ~ dnorm(0, 0.01)  # hyperparameter
+tau.alpha.psi <- 1 / (sd.alpha.psi*sd.alpha.psi)  # hyperparameter
+sd.alpha.psi ~ dunif(0, 2)
+mu.p ~ dnorm(0, 0.01)  # hyperparameter
+tau.alpha.p <- 1 / (sd.alpha.p*sd.alpha.p)  # hyperparameter
+sd.alpha.p ~ dunif(0, 2)
+
+# psi coefficients
+for (j in 1:4) {  # five predictors for psi: elevation, basalArea, distEdge and recovery
   beta.psi[j] ~ dnorm(0, 0.01)
-  beta.p[j] ~ dnorm(0, 0.01)
 }
 
-for (k in 1:(nyear-1)) {
-  gamma[k] ~ dunif(0, 1)
-  phi[k] ~ dunif(0, 1)
-}
+# p coefficients
+beta.p ~ dnorm(0, 0.01)
 
 # random year effects (for p)
 for (k in 1:nyear){
@@ -52,11 +64,18 @@ for (k in 1:nyear){
 tau.year <- 1 / (sd.year*sd.year)
 sd.year ~ dunif(0, 1)
 
+# gamma and phi varying by year
+for (k in 1:(nyear-1)) {
+  gamma[k] ~ dunif(0, 1)
+  phi[k] ~ dunif(0, 1)
+}
+
+
 ## Likelihood
 
 # ecological model
 for (i in 1:nsite){
-  logit(psi[i,1]) <- alpha.psi + beta.psi[1]*elevation[i] + beta.psi[2]*basalArea[i] + beta.psi[3]*recovery[i]
+  logit(psi[i,1]) <- alpha.psi[site[i]] + beta.psi[1]*elevation[i] + beta.psi[2]*basalArea[i] + beta.psi[3]*distEdge[i] + beta.psi[4]*recovery[i]
   z[i,1] ~ dbern(psi[i,1])
 
 for (k in 2:nyear){
@@ -68,7 +87,7 @@ for (k in 2:nyear){
 ## Observation model
 for (i in 1:nsite){
   for (k in 1:nyear){
-    logit(p[i,k]) <- alpha.p + beta.p[1]*elevation[i] + beta.p[2]*basalArea[i] + beta.p[3]*recovery[i] + eps[k]
+    logit(p[i,k]) <- alpha.p[site[i]] + eps[k]
     muy[i,k] <- z[i,k]*p[i,k] # can only be detected if z=1
     y[i,k] ~ dbin(muy[i,k], nrep[i,k])
     } #k
@@ -106,8 +125,8 @@ inits <- function(){
 # Parameters monitored
 params <- c("z", "psi", "phi", "gamma", "p",
             "alpha.psi", "alpha.p",
-            "beta.psi", "beta.p",
-            #"eps.p",
+            "beta.psi", #"beta.p",
+            "eps",
             "growthr", "turnover", "n.occ")#,
 #"fit", "fit.new")
 
@@ -115,7 +134,7 @@ params <- c("z", "psi", "phi", "gamma", "p",
 # MCMC settings
 ni <- 150000
 nt <- 100
-nb <- 75000
+nb <- 100000
 #ni <- 25000
 #nt <- 10
 #nb <- 1000
@@ -125,8 +144,9 @@ nc <- 3
 jags.data$block <- NULL
 jags.data$nblock <- NULL
 #jags.data$elevation <- NULL
-jags.data$distWater <- NULL
-jags.data$distEdge <- NULL
+jags.data$range.elevation <- NULL
+#jags.data$distWater <- NULL
+#jags.data$distEdge <- NULL
 
 # Call JAGS from R (BRT 3 min)
 out <- jags(jags.data, inits, params, here("bin", "Dynocc_covariates.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
@@ -135,13 +155,47 @@ saveRDS(out, here("results", "pobscura_mod_3predictors_simplest.rds"))
 
 # coefficients 
 coef.function <- function(x) {
-  coefs <- data.frame(x$BUGSoutput$summary[c("beta.psi[1]", "beta.psi[2]", "beta.psi[3]",
-                                             "beta.p[1]", "beta.p[2]", "beta.p[3]"),])
-  coefs <- tibble(predictor=rep(c("elevation", "basal.area", "recovery"), 2),
+  coefs <- data.frame(x$BUGSoutput$summary[c("beta.psi[1]", "beta.psi[2]", "beta.psi[3]", "beta.psi[4]"),])
+  coefs <- tibble(predictor=c("elevation", "basalArea", "distEdge", "recovery"),
                   coeff=row.names(coefs), mean=coefs$mean, lower=coefs$X2.5., upper=coefs$X97.5.,
                   Rhat=coefs$Rhat, n.eff=coefs$n.eff)
   .GlobalEnv$coefs <- coefs
   coefs
 }
 coef.function(out)
+
+# Plot effects with uncertainty
+predictor.effects <- function(x, original.predictor, coef) {
+  
+  #dev.off()
+  
+  ## Predict effect of logging on initial abundance with uncertainty
+  mcmc.sample <- x$BUGSoutput$n.sims
+  
+  original.pred <- round(seq(min(original.predictor), max(original.predictor), length.out = 30),2)
+  pred <- round((original.pred - mean(original.pred))/sd(original.pred), 2)
+  #pred <- original.pred # it was already standardized
+  psi.pred <- plogis( mean(x$BUGSoutput$sims.list$alpha.psi) +
+                        mean(x$BUGSoutput$sims.list$beta[, coef]) * pred )
+  
+  array.psi.pred <- array(NA, dim = c(length(pred), mcmc.sample))
+  for (i in 1:mcmc.sample){
+    array.psi.pred[,i] <- plogis( x$BUGSoutput$sims.list$alpha.psi[i] +
+                                    x$BUGSoutput$sims.list$beta[i,coef] * pred )
+  }
+  
+  # Plot for a subsample of MCMC draws
+  sub.set <- sort(sample(1:mcmc.sample, size = 200))
+  
+  plot(original.pred, psi.pred, main = "", ylab = expression(psi), xlab = "", 
+       ylim=c(0, 1), type = "l", lwd = 2, las=1, frame.plot = FALSE)
+  for (i in sub.set){
+    lines(original.pred, array.psi.pred[,i], type = "l", lwd = 1, col = "gray")
+  }
+  lines(original.pred, psi.pred, type = "l", lwd = 2, col = "blue")
+  #mtext(expression(psi), side=2, line=3)
+}
+#predictor.effects(out, original.elevation, "a1")
+
+
 

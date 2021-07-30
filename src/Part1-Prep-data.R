@@ -52,8 +52,8 @@ hist(tempdf$effort)
 # for this we must reset end dates using max photo date
 f.update.end.data <- function(data){
   for(i in 1:nrow(data)){
-    if (data$End.Date[i] > data$Start.Date[i] + 60) {
-      data$End.Date[i] <- data$Start.Date[i] + 60
+    if (data$End.Date[i] > data$Start.Date[i] + 50) {
+      data$End.Date[i] <- data$Start.Date[i] + 50
     }
   }
   data$Camera.Start.Date <- data$Start.Date
@@ -97,7 +97,12 @@ temp1 %>%
 temp1 %>%
   group_by(Sampling.Event) %>%
   filter(bin == "Psophia obscura") %>%
-  summarize(mean_group = mean(Number.of.Animals))
+  summarize(mean_group = mean(Number.of.Animals), min = min(Number.of.Animals), max = max(Number.of.Animals))
+
+temp2 <- temp1 %>%
+  group_by(Sampling.Event) %>%
+  filter(bin == "Psophia obscura")
+hist(as.numeric(temp2$Number.of.Animals))
 
 
 #----- 4 - Extract binary presence/absence matrices for each species
@@ -149,18 +154,22 @@ duration <- function(data) {
 }
 
 duration(dataRBG2016) #
-round(55/5) # get the number of occasions argument for f.matrix.creator4
+round(54/5) # get the number of occasions argument for f.matrix.creator4
+#round(55/10)
 duration(dataRBG2017)
-round(70/5)
+round(60/5)
+#round(70/10)
 duration(dataRBG2018)
-round(58/5)
+round(57/5)
+#round(58/10)
 duration(dataRBG2019)
 round(56/5)
+#round(56/10)
 
-paMats2016 <- f.matrix.creator4(dataRBG2016, species, 11)
-paMats2017 <- f.matrix.creator4(dataRBG2017, species, 14)
-paMats2018 <- f.matrix.creator4(dataRBG2018, species, 12)
-paMats2019 <- f.matrix.creator4(dataRBG2019, species, 11)
+paMats2016 <- f.matrix.creator4(dataRBG2016, species, 11) # 11 if using 5-day occasion
+paMats2017 <- f.matrix.creator4(dataRBG2017, species, 12) # 14
+paMats2018 <- f.matrix.creator4(dataRBG2018, species, 11) # 12
+paMats2019 <- f.matrix.creator4(dataRBG2019, species, 11) # 11
 
 dim(paMats2016[[1]]) # check
 paMats2016[[1]] # check
@@ -181,15 +190,15 @@ dim(paMats2019[[1]])
 createSppData <- function(x) {
   for(i in 1:length(x)){
     #df1 <- as.data.frame(paMats2016[x])
-    df1 <- as.data.frame(cbind(paMats2016[[x]], matrix(NA, 61, 3)))
+    df1 <- as.data.frame(cbind(paMats2016[[x]], matrix(NA, 61, 1))) # matrix(NA, 61, 3)) if using 5-day occasion
     colnames(df1) <- seq(1:length(colnames(df1))); colnames(df1) <- paste("X2016.", colnames(df1), sep="")
     df2 <- as.data.frame(paMats2017[x]) 
     colnames(df2) <- seq(1:length(colnames(df2))); colnames(df2) <- paste("X2017.", colnames(df2), sep="")
     #df3 <- as.data.frame(paMats2018[x])
-    df3 <- as.data.frame(cbind(paMats2018[[x]], matrix(NA, 61, 2)))
+    df3 <- as.data.frame(cbind(paMats2018[[x]], matrix(NA, 61, 1))) # 61,3...
     colnames(df3) <- seq(1:length(colnames(df3))); colnames(df3) <- paste("X2018.", colnames(df3), sep="")
     #df4 <- as.data.frame(paMats2019[x])
-    df4 <- as.data.frame(cbind(paMats2019[[x]], matrix(NA, 61, 3)))
+    df4 <- as.data.frame(cbind(paMats2019[[x]], matrix(NA, 61, 1))) # 61,3...
     colnames(df4) <- seq(1:length(colnames(df4))); colnames(df4) <- paste("X2019.", colnames(df4), sep="")
     bla <- cbind(df1, df2, df3, df4)
   }

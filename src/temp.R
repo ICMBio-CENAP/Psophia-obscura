@@ -32,25 +32,51 @@ model {
 
 # intercepts
 alpha.psi ~ dnorm(0, 0.01)
-alpha.p ~ dnorm(0, 0.01)
+#alpha.p ~ dnorm(0, 0.01)
 
 # coefficients
 for (j in 1:3) {
-  beta.psi[j] ~ dnorm(0, 0.01)
-  beta.p[j] ~ dnorm(0, 0.01)
+  beta.psi[j] ~ dnorm(0, tau.psi)
+  #beta.p[j] ~ dnorm(0, tau.p)
 }
+tau.psi ~ dgamma(1,0.001)
+#tau.p ~ dgamma(1,0.001)
 
 for (k in 1:(nyear-1)) {
   gamma[k] ~ dunif(0, 1)
   phi[k] ~ dunif(0, 1)
 }
 
-# random year effects (for p)
+# random site effects
+for (i in 1:nsite){
+   alpha.p[i] ~ dnorm(mu.p, tau.alpha.p)
+#   alpha.gamma[i] ~ dnorm(mu.gamma, tau.alpha.gamma)
+#   alpha.phi[i] ~ dnorm(mu.phi, tau.alpha.phi)
+   }
+mu.p ~ dnorm(0, 0.01)  # hyperparameter 1
+tau.alpha.p <- 1 / (sd.alpha.p*sd.alpha.p)  # hyperparameter 2
+sd.alpha.p ~ dunif(0, 2)
+#mu.gamma ~ dnorm(0, 0.01)  # hyperparameter
+#tau.alpha.gamma <- 1 / (sd.alpha.gamma*sd.alpha.gamma)  # hyperparameter
+#sd.alpha.gamma ~ dunif(0, 2)
+#mu.phi ~ dnorm(0, 0.01)  # hyperparameter
+#tau.alpha.phi <- 1 / (sd.alpha.phi*sd.alpha.phi)  # hyperparameter
+#sd.alpha.phi ~ dunif(0, 2)
+
+
+# random year effects
 for (k in 1:nyear){
-   eps[k] ~ dnorm(0, tau.year)
+   eps.p[k] ~ dnorm(0, tau.year.p)
+#   eps.gamma[k] ~ dnorm(0, tau.year.gamma)
+#   eps.phi[k] ~ dnorm(0, tau.year.phi)
 } # k
-tau.year <- 1 / (sd.year*sd.year)
-sd.year ~ dunif(0, 1)
+tau.year.p <- 1 / (sd.year.p*sd.year.p)
+sd.year.p ~ dunif(0, 1)
+#tau.year.gamma <- 1 / (sd.year.gamma*sd.year.gamma)
+#sd.year.gamma ~ dunif(0, 1)
+#tau.year.phi <- 1 / (sd.year.phi*sd.year.phi)
+#sd.year.phi ~ dunif(0, 1)
+
 
 ## Likelihood
 
@@ -60,6 +86,8 @@ for (i in 1:nsite){
   z[i,1] ~ dbern(psi[i,1])
 
 for (k in 2:nyear){
+  #logit(gamma[i,k-1]) <- alpha.gamma[i] + eps.gamma[k]
+  #logit(phi[i,k]) <- alpha.phi[i] + eps.phi[k]
   muZ[i,k] <- z[i,k-1]*phi[k-1] + (1-z[i,k-1])*gamma[k-1]
   z[i,k] ~ dbern(muZ[i,k])
   } #k
@@ -68,7 +96,7 @@ for (k in 2:nyear){
 ## Observation model
 for (i in 1:nsite){
   for (k in 1:nyear){
-    logit(p[i,k]) <- alpha.p + beta.p[1]*elevation[i] + beta.p[2]*basalArea[i] + beta.p[3]*recovery[i] + eps[k]
+    logit(p[i,k]) <- alpha.p[i] + eps.p[k]
     muy[i,k] <- z[i,k]*p[i,k] # can only be detected if z=1
     y[i,k] ~ dbin(muy[i,k], nrep[i,k])
     } #k
@@ -86,7 +114,7 @@ for (i in 1:nsite){
 for (k in 2:nyear){
   n.occ[k] <- sum(z[,k])
   growthr[k-1] <- mean(psi[,k])/mean(psi[,k-1]) # originally we had growthr[k]. JAGS seem to dislike vectoring going from 2..K.
-  turnover[k-1] <- (1 - mean(psi[,k-1])) * gamma[k-1]/mean(psi[,k])
+  turnover[k-1] <- (1 - mean(psi[,k-1])) * mean(gamma[k-1])/mean(psi[,k])
  } #k
 
 }
@@ -105,9 +133,9 @@ inits <- function(){
 
 # Parameters monitored
 params <- c("z", "psi", "phi", "gamma", "p",
-            "alpha.psi", "alpha.p",
-            "beta.psi", "beta.p",
-            #"eps.p",
+            "alpha.psi", "alpha.p", #"alpha.gamma", "alpha.phi",
+            "beta.psi", #"beta.p",
+            "eps.p", #"eps.gamma", "eps.phi",
             "growthr", "turnover", "n.occ")#,
 #"fit", "fit.new")
 
@@ -130,7 +158,7 @@ jags.data$distEdge <- NULL
 
 # Call JAGS from R (BRT 3 min)
 out <- jags(jags.data, inits, params, here("bin", "Dynocc_covariates.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-saveRDS(out, here("results", "pobscura_mod_3predictors_simplest.rds"))
+saveRDS(out, here("results", "pobscura_mod_temp.rds"))
 
 
 # coefficients 
