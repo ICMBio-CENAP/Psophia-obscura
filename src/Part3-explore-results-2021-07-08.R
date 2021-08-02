@@ -91,6 +91,7 @@ add_label_legend <- function(pos = "topleft", label, ...) {
   legend(pos, label, bty = "n", ...)
 }
 par(mfrow=c(3,1))
+par(mar=c(3,5,1,2))
 predictor.effects.psi(out, pobscura$dist.water, 2)
 mtext("Distance to water (m)", side=1, line=3)
 add_label_legend("topleft", "A")
@@ -103,9 +104,9 @@ add_label_legend("topleft", "C")
 dev.off()
 
 # save jpeg
-jpeg(here("results", "Fig_2.jpg"), res=120, width = 600, height = 900)
+jpeg(here("results", "Fig_2.jpg"), res=120, width = 600, height = 1200)
 par(mfrow=c(3,1))
-par(mar=c(3,5,2,2))
+par(mar=c(3,5,1,2))
 predictor.effects.psi(out, pobscura$dist.water, 2)
 #mtext("Distance to water (m)", side=1, line=3)
 add_label_legend("topleft", "A")
@@ -181,7 +182,7 @@ plot.psi.temporal.trends()
 
 
 # save jpeg
-jpeg(here("results", "psi_temporal_trends.jpg"), res=120, width = 800, height = 500)
+jpeg(here("results", "psi_temporal_trends.jpg"), res=120, width = 800, height = 600)
 plot.psi.temporal.trends()
 dev.off()
 
