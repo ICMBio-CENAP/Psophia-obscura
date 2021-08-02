@@ -59,10 +59,7 @@ y2019 <- rowSums(y[,,4], na.rm=TRUE)
 y <- data.frame(cbind(y2016, y2017, y2018, y2019))
 head(y)
 
-# if using 5-day occasion:
-#SiteCovs <- pobscura[,58:66]
-# if using 10-day occasion:
-SiteCovs <- pobscura[,50:58]
+SiteCovs <- pobscura[,50:59]
 names(SiteCovs)
 original.landCover <- SiteCovs[,1]
 original.distWater <- SiteCovs[,2]#/1000 # convert from metres to km
@@ -73,6 +70,7 @@ original.basalArea <- SiteCovs[,6]
 original.treeDensity <- SiteCovs[,7]
 block <- SiteCovs[,8]
 original.recovery <- SiteCovs[,9]
+original.bouts <- SiteCovs[,10]
 
 # check corr in SiteCovs
 covars_correlations <- data.frame(cor(SiteCovs))
@@ -93,6 +91,7 @@ hist(original.treeDensity, main="", xlab="Tree density (ind/ha)")
 hist(log(original.treeDensity), main="", xlab="Log tree density (ind/ha)")
 hist(original.recovery, main="", xlab="Recovery time (years)")
 hist(log(original.recovery), main="", xlab="Log recovery time (years)")
+hist(original.bouts, main="", xlab="Recovery time (years)")
 # use log for distance to water and to edges
 
 # Standardize covariates
@@ -160,6 +159,15 @@ recovery[is.na(recovery)] <- 0               # Impute zeroes (means)
 recovery <- round(recovery, 2)
 recovery
 
+bouts <- original.bouts
+mean.bouts <- mean(bouts, na.rm = TRUE)
+sd.bouts <- sd(bouts[!is.na(bouts)])
+bouts <- (bouts-mean.bouts)/sd.bouts     # Standardise bouts
+bouts[is.na(bouts)] <- 0               # Impute zeroes (means)
+bouts <- round(bouts, 2)
+bouts
+
+
 psophia_data <- list(y=y, nrep = nrep, nsite=dim(y)[1], nyear=dim(y)[2],
                      block=block, nblock=length(unique(block)),
                      elevation=point.elevation,
@@ -167,7 +175,9 @@ psophia_data <- list(y=y, nrep = nrep, nsite=dim(y)[1], nyear=dim(y)[2],
                      distEdge=distEdge,
                      distWater=distWater,
                      basalArea=basalArea,
-                     recovery=recovery)
+                     treeDensity=treeDensity,
+                     recovery=recovery,
+                     bouts=bouts)
 str(psophia_data)
 
 saveRDS(psophia_data, here("data", "psophia_data.rds"))

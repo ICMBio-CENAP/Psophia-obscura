@@ -50,7 +50,7 @@ tau.alpha.p <- 1 / (sd.alpha.p*sd.alpha.p)  # hyperparameter
 sd.alpha.p ~ dunif(0, 2)
 
 # psi coefficients
-for (j in 1:4) {  # five predictors for psi: elevation, basalArea, distEdge and recovery
+for (j in 1:6) {  # five predictors for psi: elevation, basalArea, distEdge and recovery
   beta.psi[j] ~ dnorm(0, 0.01)
 }
 
@@ -75,7 +75,7 @@ for (k in 1:(nyear-1)) {
 
 # ecological model
 for (i in 1:nsite){
-  logit(psi[i,1]) <- alpha.psi[site[i]] + beta.psi[1]*elevation[i] + beta.psi[2]*basalArea[i] + beta.psi[3]*distEdge[i] + beta.psi[4]*recovery[i]
+  logit(psi[i,1]) <- alpha.psi[site[i]] + beta.psi[1]*elevation[i] + beta.psi[2]*distWater[i] + beta.psi[3]*basalArea[i] + beta.psi[4]*treeDensity[i] + beta.psi[5]*distEdge[i] + beta.psi[6]*recovery[i]
   z[i,1] ~ dbern(psi[i,1])
 
 for (k in 2:nyear){
@@ -150,13 +150,13 @@ jags.data$range.elevation <- NULL
 
 # Call JAGS from R (BRT 3 min)
 out <- jags(jags.data, inits, params, here("bin", "Dynocc_covariates.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-saveRDS(out, here("results", "pobscura_mod_3predictors_simplest.rds"))
+saveRDS(out, here("results", "pobscura_mod_2021-08-02.rds"))
 
 
 # coefficients 
 coef.function <- function(x) {
-  coefs <- data.frame(x$BUGSoutput$summary[c("beta.psi[1]", "beta.psi[2]", "beta.psi[3]", "beta.psi[4]"),])
-  coefs <- tibble(predictor=c("elevation", "basalArea", "distEdge", "recovery"),
+  coefs <- data.frame(x$BUGSoutput$summary[c("beta.psi[1]", "beta.psi[2]", "beta.psi[3]", "beta.psi[4]", "beta.psi[5]", "beta.psi[6]"),])
+  coefs <- tibble(predictor=c("elevation", "distWater", "basalArea", "treeDensity", "distEdge", "recovery"),
                   coeff=row.names(coefs), mean=coefs$mean, lower=coefs$X2.5., upper=coefs$X97.5.,
                   Rhat=coefs$Rhat, n.eff=coefs$n.eff)
   .GlobalEnv$coefs <- coefs
@@ -197,5 +197,6 @@ predictor.effects <- function(x, original.predictor, coef) {
 }
 #predictor.effects(out, original.elevation, "a1")
 
-
-
+predictor.effects(out, original.distWater, 2)
+predictor.effects(out, original.basalArea, 3)
+predictor.effects(out, original.recovery, 6)

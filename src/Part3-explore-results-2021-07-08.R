@@ -14,7 +14,9 @@ library(ggplot2)
 source(here("bin", "figures.R"))
 
 #----- 3 - Read and prepare data -----
-out <- read_rds(here("results", "pobscura_mod_3predictors_simplest.rds"))
+#out <- read_rds(here("results", "pobscura_mod_3predictors_simplest.rds"))
+out <- read_rds(here("results", "pobscura_mod_2021-08-02.rds"))
+
 
 jags.data <- read_rds(here("data", "psophia_data.rds"))
 jags.data$Ind <- as.numeric(ifelse(jags.data$block == 2, 1, 0)) # recode blocks, B1=0; B2=1)
@@ -38,8 +40,8 @@ dim(out$BUGSoutput$summary[which(out$BUGSoutput$summary[,"Rhat"] > 1.1),]) # how
 
 # coefficients 
 coef.function <- function(x) {
-  coefs <- data.frame(x$BUGSoutput$summary[c("beta.psi[1]", "beta.psi[2]", "beta.psi[3]", "beta.psi[4]"),])
-  coefs <- tibble(predictor=c("elevation", "basalArea", "distEdge", "recovery"),
+  coefs <- data.frame(x$BUGSoutput$summary[c("beta.psi[1]", "beta.psi[2]", "beta.psi[3]", "beta.psi[4]", "beta.psi[5]", "beta.psi[6]"),])
+  coefs <- tibble(predictor=c("elevation", "distWater", "basalArea", "treeDensity", "distEdge", "recovery"),
                   coeff=row.names(coefs), mean=coefs$mean, lower=coefs$X2.5., upper=coefs$X97.5.,
                   Rhat=coefs$Rhat, n.eff=coefs$n.eff)
   .GlobalEnv$coefs <- coefs
@@ -56,13 +58,63 @@ coef.function(out)
 #mtext("Basal area (m²/ha)", side=1, line=3)
 #dev.off()
 
+# plot significant effects: distWater on psi
+predictor.effects.psi(out, pobscura$dist.water, 2)
+mtext("Distance to water (m)", side=1, line=3)
+# save jpeg
+jpeg(here("results", "distWater_effect_psi.jpg"), res=120, width = 800, height = 500)
+predictor.effects.psi(out, pobscura$dist.water, 2)
+mtext("Distance to water (m)", side=1, line=3)
+dev.off()
+
+# plot significant effects: basalArea on psi
+predictor.effects.psi(out, pobscura$basal.area, 3)
+mtext("Basal area (m²/ha)", side=1, line=3)
+# save jpeg
+jpeg(here("results", "basalArea_effect_psi.jpg"), res=120, width = 800, height = 500)
+predictor.effects.psi(out, pobscura$basal.area, 3)
+mtext("Basal area (m²/ha)", side=1, line=3)
+dev.off()
+
 # plot significant effects: recovery on psi
-predictor.effects.psi(out, pobscura$recovery, 4)
+predictor.effects.psi(out, pobscura$recovery, 6)
 mtext("Recovery time (years)", side=1, line=3)
 # save jpeg
 jpeg(here("results", "recovery_effect_psi.jpg"), res=120, width = 800, height = 500)
-predictor.effects.psi(out, pobscura$recovery, 4)
+predictor.effects.psi(out, pobscura$recovery, 6)
 mtext("Recovery time (years)", side=1, line=3)
+dev.off()
+
+
+# multipanel
+add_label_legend <- function(pos = "topleft", label, ...) {
+  legend(pos, label, bty = "n", ...)
+}
+par(mfrow=c(3,1))
+predictor.effects.psi(out, pobscura$dist.water, 2)
+mtext("Distance to water (m)", side=1, line=3)
+add_label_legend("topleft", "A")
+predictor.effects.psi(out, pobscura$basal.area, 3)
+mtext("Basal area (m²/ha)", side=1, line=3)
+add_label_legend("topleft", "B")
+predictor.effects.psi(out, pobscura$recovery, 6)
+mtext("Recovery time (years)", side=1, line=3)
+add_label_legend("topleft", "C")
+dev.off()
+
+# save jpeg
+jpeg(here("results", "Fig_2.jpg"), res=120, width = 600, height = 900)
+par(mfrow=c(3,1))
+par(mar=c(3,5,2,2))
+predictor.effects.psi(out, pobscura$dist.water, 2)
+#mtext("Distance to water (m)", side=1, line=3)
+add_label_legend("topleft", "A")
+predictor.effects.psi(out, pobscura$basal.area, 3)
+#mtext("Basal area (m²/ha)", side=1, line=3)
+add_label_legend("topleft", "B")
+predictor.effects.psi(out, pobscura$recovery, 6)
+#mtext("Recovery time (years)", side=1, line=3)
+add_label_legend("topleft", "C")
 dev.off()
 
 
@@ -118,11 +170,11 @@ plot.psi.temporal.trends <- function() {
   # Plot for a subsample of MCMC draws
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   plot(2016:2019, mean_psi, main = "", ylab = expression(psi), xlab = "", 
-       ylim=c(0, 1), type = "l", lwd = 2, las=1, xaxt="n", frame.plot = FALSE)
+       ylim=c(0, 1), type = "l", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
   for (i in sub.set){
-    lines(2016:2019, array.psi[,i], type = "l", lwd = 1, col = "gray")
+    lines(2016:2019, array.psi[,i], type = "l", lwd = 0.5, col = "gray")
   }
-  lines(2016:2019, mean_psi, type = "l", lwd = 2, col = "blue")
+  lines(2016:2019, mean_psi, type = "l", lwd = 1, col = "black")
   axis(1, at = c(2016, 2017, 2018, 2019), labels = seq(2016,2019))
 }
 plot.psi.temporal.trends()
@@ -194,74 +246,6 @@ parameters.table <- function(x) {
 }
 parameters.table(out)
 
-
-
-# compare psi across blocks
-str(out$BUGSoutput$sims.list$psi)
-which(Ind == 0)
-par(mfrow=c(2,1))
-hist( apply(out$BUGSoutput$sims.list$psi[, which(Ind == 0), 1], 2, mean) , main="", xlab="Block 1")  # psi per site block one year one
-hist( apply(out$BUGSoutput$sims.list$psi[, which(Ind != 0), 1], 2, mean) , main="", xlab="Block 2")  # psi per site block one year one
-dev.off()
-
-# boxplot to compare psi mean and CI across blocks 
-psi_block <- tibble(block=ifelse(Ind==0, "B1", "B2"),
-                     psi=c(apply(out$BUGSoutput$sims.list$psi[, which(Ind == 0), 1], 2, mean),
-                     apply(out$BUGSoutput$sims.list$psi[, which(Ind != 0), 1], 2, mean))  )
-psi_block
-boxplot(psi_block$psi ~ psi_block$block , las=1, xlab="", ylab="psi", ylim=c(0,1))
-
-
-# annual occupancy trends
-psi_year <- tibble(year=c(2016, 2017, 2018, 2019),
-                   mean=apply(out$BUGSoutput$sims.list$psi, 3, mean),
-                   LCI=apply(out$BUGSoutput$sims.list$psi, 3, quantile, probs=c(0.025)),
-                   UCI=apply(out$BUGSoutput$sims.list$psi, 3, quantile, probs=c(0.975)) )
-psi_year
-
-with(psi_year, plot(year, mean, type="b", ylim=c(0,1), las=1, xaxt = "n") )
-axis(1, at = c(2016, 2017, 2018, 2019), labels = seq(2016,2019))
-#segments(c(2016, 2017, 2018, 2019), psi_year$LCI, c(2016, 2017, 2018, 2019), psi_year$UCI)
-
-# yearly site means
-psi.site <- tibble(array=(jags.data$Ind+1),
-                   y.2016=apply(out$BUGSoutput$sims.list$psi[,,1], 2, mean),
-                   y.2017=apply(out$BUGSoutput$sims.list$psi[,,2], 2, mean),
-                   y.2018=apply(out$BUGSoutput$sims.list$psi[,,3], 2, mean),
-                   y.2019=apply(out$BUGSoutput$sims.list$psi[,,4], 2, mean) )
-psi.site
-means <- apply(psi.site[2:5], 2, mean)
-lower <- apply(psi.site[2:5], 2, quantile, probs=c(0.025))
-upper <- apply(psi.site[2:5], 2, quantile, probs=c(0.975))
-plot(seq(2016,2019), means, type="b", ylim=c(0,1), las=1, xaxt = "n") 
-axis(1, at = c(2016, 2017, 2018, 2019), labels = seq(2016,2019))
-segments(c(2016, 2017, 2018, 2019), lower, c(2016, 2017, 2018, 2019), upper)
-
-
-# plot occupancy trends with uncertainty
-plot.psi.temporal.trends <- function() {
-  mean_psi <- apply(out$BUGSoutput$sims.list$psi[,,], 3, mean)
-  mcmc.sample <- out$BUGSoutput$n.sims
-  array.psi <- array(NA, dim = c(nyear, mcmc.sample))
-  for (i in 1:mcmc.sample){
-    array.psi[,i] <- apply(out$BUGSoutput$sims.list$psi[i,,], 2, mean)
-  }
-  # Plot for a subsample of MCMC draws
-  sub.set <- sort(sample(1:mcmc.sample, size = 200))
-  plot(2016:2019, mean_psi, main = "", ylab = expression(psi), xlab = "", 
-       ylim=c(0, 1), type = "l", lwd = 2, las=1, xaxt="n", frame.plot = FALSE)
-  for (i in sub.set){
-    lines(2016:2019, array.psi[,i], type = "l", lwd = 1, col = "gray")
-  }
-  lines(2016:2019, mean_psi, type = "l", lwd = 2, col = "blue")
-  axis(1, at = c(2016, 2017, 2018, 2019), labels = seq(2016,2019))
-}
-plot.psi.temporal.trends()
-
-# save jpeg
-jpeg(here("results", "psi_temporal_trends.jpg"), res=120, width = 800, height = 600)
-plot.psi.temporal.trends()
-dev.off()
 
 
 # plot survival trends with uncertainty

@@ -296,6 +296,11 @@ covars_hmsc$recovery <- as.numeric(covars_hmsc$recovery)
 recovery <- covars_hmsc[,c("Camera.Trap.Name", "recovery")]
 head(recovery)
 
+# logging bouts
+covars_hmsc$bouts <- as.numeric(covars_hmsc$bouts)
+bouts <- covars_hmsc[,c("Camera.Trap.Name", "bouts")]
+head(bouts)
+
 ## create a single covariates dataframe
 covars <- merge(cover, dist.water, by="Camera.Trap.Name", all.x=TRUE)
 covars <- merge(covars, dist.edge, by="Camera.Trap.Name", all.x=TRUE)
@@ -303,13 +308,20 @@ covars <- merge(covars, elev, by="Camera.Trap.Name", all.x=TRUE)
 covars <- merge(covars, trees, by="Camera.Trap.Name", all.x=TRUE)
 covars <- merge(covars, block, by="Camera.Trap.Name", all.x=TRUE)
 covars <- merge(covars, recovery, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, bouts, by="Camera.Trap.Name", all.x=TRUE)
 head(covars)
 dim(covars)
+
+# there are two NAs in recovery and bouts, the fix is the following
 covars[which(is.na(covars$recovery)),]
-# there are two NAs in recovery, the fix is the following
 covars[covars$Camera.Trap.Name=="CT-RBG-1-11", "recovery"] <- 6
 covars[covars$Camera.Trap.Name=="CT-RBG-2-82", "recovery"] <- 15
 covars[which(is.na(covars$recovery)),]
+
+covars[which(is.na(covars$bouts)),]
+covars[covars$Camera.Trap.Name=="CT-RBG-1-11", "bouts"] <- round(mean(covars$bouts, na.rm=TRUE))
+covars[covars$Camera.Trap.Name=="CT-RBG-2-82", "bouts"] <- round(mean(covars$bouts, na.rm=TRUE))
+covars[which(is.na(covars$bouts)),]
 
 # merge 
 dataRBG_species_Psophia_obscura$Camera.Trap.Name <- rownames(dataRBG_species_Psophia_obscura)
@@ -330,10 +342,11 @@ names(pobscura)[1] <- "cams"
 saveRDS(pobscura, here("data","pobscura.rds"))
 
 
-bla1 <- data.frame(cams)
-names(bla1) <- "Camera.Trap.Name"
-bla3 <- merge(bla1, dataRBG[,c("Camera.Trap.Name", "Latitude", "Longitude")], by="Camera.Trap.Name")
-bla3
-bla4 <- distinct(bla3)
-bla4
-write.csv(bla4, here("data", "psophia-cams.csv"))
+# file for map (Figure 1 in paper)
+#bla1 <- data.frame(cams)
+#names(bla1) <- "Camera.Trap.Name"
+#bla3 <- merge(bla1, dataRBG[,c("Camera.Trap.Name", "Latitude", "Longitude")], by="Camera.Trap.Name")
+#bla3
+#bla4 <- distinct(bla3)
+#bla4
+#write.csv(bla4, here("data", "psophia-cams.csv"))

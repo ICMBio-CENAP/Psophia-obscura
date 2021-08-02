@@ -38,41 +38,6 @@ Fig_effects <- function(x) {
 #abline(v = quantile(out$BUGSoutput$sims.list$c1, probs=c(0.025, 0.975)), lty=2)
 
 
-# Plot effects with uncertainty
-predictor.effects <- function(x, original.predictor, coef) {
-  
-  #dev.off()
-
-  ## Predict effect of logging on initial abundance with uncertainty
-  mcmc.sample <- x$BUGSoutput$n.sims
-
-  original.pred <- round(seq(min(original.predictor), max(original.predictor), length.out = 30),2)
-  pred <- round((original.pred - mean(original.pred))/sd(original.pred), 2)
-  #pred <- original.pred # it was already standardized
-  psi.pred <- plogis( mean(x$BUGSoutput$sims.list$alpha.psi) +
-                        mean(x$BUGSoutput$sims.list$beta[, coef]) * pred )
-  
-  array.psi.pred <- array(NA, dim = c(length(pred), mcmc.sample))
-  for (i in 1:mcmc.sample){
-    array.psi.pred[,i] <- plogis( x$BUGSoutput$sims.list$alpha.psi[i] +
-                              x$BUGSoutput$sims.list$beta[i,coef] * pred )
-  }
-  
-  # Plot for a subsample of MCMC draws
-  sub.set <- sort(sample(1:mcmc.sample, size = 200))
-  
-  plot(original.pred, psi.pred, main = "", ylab = expression(psi), xlab = "", 
-       ylim=c(0, 1), type = "l", lwd = 2, las=1, frame.plot = FALSE)
-  for (i in sub.set){
-    lines(original.pred, array.psi.pred[,i], type = "l", lwd = 1, col = "gray")
-  }
-  lines(original.pred, psi.pred, type = "l", lwd = 2, col = "blue")
-  #mtext(expression(psi), side=2, line=3)
- }
-#predictor.effects(out, original.elevation, "a1")
-
-
-
 #-----
 # Plot effects with uncertainty
 predictor.effects.psi <- function(x, original.predictor, coef) {
@@ -98,11 +63,11 @@ predictor.effects.psi <- function(x, original.predictor, coef) {
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   
   plot(original.pred, psi.pred, main = "", ylab = expression(psi), xlab = "", 
-       ylim=c(0, 1), type = "l", lwd = 2, las=1, frame.plot = FALSE)
+       ylim=c(0, 1), type = "l", lwd = 2, las=1)#, frame.plot = FALSE)
   for (i in sub.set){
-    lines(original.pred, array.psi.pred[,i], type = "l", lwd = 1, col = "gray")
+    lines(original.pred, array.psi.pred[,i], type = "l", lwd = 0.5, col = "gray")
   }
-  lines(original.pred, psi.pred, type = "l", lwd = 2, col = "blue")
+  lines(original.pred, psi.pred, type = "l", lwd = 1, col = "black")
   #mtext(expression(psi), side=2, line=3)
 }
 #predictor.effects(out, original.elevation, "a1")

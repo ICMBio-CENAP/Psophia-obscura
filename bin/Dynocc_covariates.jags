@@ -20,7 +20,7 @@ tau.alpha.p <- 1 / (sd.alpha.p*sd.alpha.p)  # hyperparameter
 sd.alpha.p ~ dunif(0, 2)
 
 # psi coefficients
-for (j in 1:4) {  # five predictors for psi: elevation, basalArea, distEdge and recovery
+for (j in 1:6) {  # five predictors for psi: elevation, basalArea, distEdge and recovery
   beta.psi[j] ~ dnorm(0, 0.01)
 }
 
@@ -45,7 +45,7 @@ for (k in 1:(nyear-1)) {
 
 # ecological model
 for (i in 1:nsite){
-  logit(psi[i,1]) <- alpha.psi[site[i]] + beta.psi[1]*elevation[i] + beta.psi[2]*basalArea[i] + beta.psi[3]*distEdge[i] + beta.psi[4]*recovery[i]
+  logit(psi[i,1]) <- alpha.psi[site[i]] + beta.psi[1]*elevation[i] + beta.psi[2]*distWater[i] + beta.psi[3]*basalArea[i] + beta.psi[4]*treeDensity[i] + beta.psi[5]*distEdge[i] + beta.psi[6]*recovery[i]
   z[i,1] ~ dbern(psi[i,1])
 
 for (k in 2:nyear){
