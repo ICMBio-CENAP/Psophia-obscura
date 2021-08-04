@@ -35,12 +35,15 @@ source(here("bin", "figures.R"))
 
 pobscura <- readRDS(here("data", "pobscura.rds"))
 names(pobscura)
-y <- array(c(unlist(pobscura[,2:15]), unlist(pobscura[,16:29]), unlist(pobscura[,30:43]), unlist(pobscura[,44:57])), c(61, 14, 4))
+# if using 5-day occasion:
+#y <- array(c(unlist(pobscura[,2:15]), unlist(pobscura[,16:29]), unlist(pobscura[,30:43]), unlist(pobscura[,44:57])), c(61, 14, 4))
+# if using 10-day occasion:
+y <- array(c(unlist(pobscura[,2:13]), unlist(pobscura[,14:25]), unlist(pobscura[,26:37]), unlist(pobscura[,38:49])), c(61, 12, 4))
 str(y)
 
 R <- dim(y)[1]
 J <- dim(y)[2]
-#K <- dim(y)[3]
+K <- dim(y)[3]
 
 #j2016 <- as.numeric(rowSums(!is.na(y[,,1])))
 #j2017 <- as.numeric(rowSums(!is.na(y[,,2])))
@@ -56,7 +59,7 @@ J <- dim(y)[2]
 #y <- data.frame(cbind(y2016, y2017, y2018, y2019))
 #head(y)
 
-SiteCovs <- pobscura[,58:66]
+SiteCovs <- pobscura[,50:59]
 names(SiteCovs)
 original.landCover <- SiteCovs[,1]
 original.distWater <- SiteCovs[,2]#/1000 # convert from metres to km
@@ -67,6 +70,7 @@ original.basalArea <- SiteCovs[,6]
 original.treeDensity <- SiteCovs[,7]
 block <- SiteCovs[,8]
 original.recovery <- SiteCovs[,9]
+original.bouts <- SiteCovs[,10]
 
 # check corr in SiteCovs
 covars_correlations <- data.frame(cor(SiteCovs))
@@ -87,6 +91,7 @@ hist(original.treeDensity, main="", xlab="Tree density (ind/ha)")
 hist(log(original.treeDensity), main="", xlab="Log tree density (ind/ha)")
 hist(original.recovery, main="", xlab="Recovery time (years)")
 hist(log(original.recovery), main="", xlab="Log recovery time (years)")
+hist(original.bouts, main="", xlab="Recovery time (years)")
 # use log for distance to water and to edges
 
 # Standardize covariates
@@ -154,16 +159,27 @@ recovery[is.na(recovery)] <- 0               # Impute zeroes (means)
 recovery <- round(recovery, 2)
 recovery
 
-psophia_data <- list(y=y, nrep = nrep, nsite=dim(y)[1], nyear=dim(y)[2],
-                     block=block, nblock=length(unique(block)),
+bouts <- original.bouts
+mean.bouts <- mean(bouts, na.rm = TRUE)
+sd.bouts <- sd(bouts[!is.na(bouts)])
+bouts <- (bouts-mean.bouts)/sd.bouts     # Standardise bouts
+bouts[is.na(bouts)] <- 0               # Impute zeroes (means)
+bouts <- round(bouts, 2)
+bouts
+
+
+psophia_data_ijk <- list(y=y, nsite=as.numeric(dim(y)[1]), nocc=as.numeric(dim(y)[2]), nyear=as.numeric(dim(y)[3]),
+                     block=block, nblock=as.numeric(length(unique(block))),
                      elevation=point.elevation,
                      range.elevation=range.elevation,
                      distEdge=distEdge,
                      distWater=distWater,
                      basalArea=basalArea,
-                     recovery=recovery)
-str(psophia_data)
+                     treeDensity=treeDensity,
+                     recovery=recovery,
+                     bouts=bouts)
+str(psophia_data_ijk)
 
-saveRDS(psophia_data, here("data", "psophia_data_ijk.rds"))
+saveRDS(psophia_data_ijk, here("data", "psophia_data_ijk.rds"))
 
 
