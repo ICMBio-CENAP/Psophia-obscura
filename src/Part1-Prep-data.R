@@ -20,11 +20,11 @@ source(here("bin", "fix_species_names.R")) # fix some names and remove "false" s
 
 ## ----Load data-------
 #dataRBG <- f.readin.fix.data(here("data", "Wild_ID_RBG_2016to2019.csv"))
-dataRBG <- read.csv(here("data", "Wild_ID_RBG_2016to2019.csv"))
+dataRBG <- read.csv(here("data", "Wild_ID_RBG_2016to2020.csv"))
 
 # some fixes
 dataRBG$Sampling.Unit.Name <- as.factor(dataRBG$Camera.Trap.Name)
-colnames(dataRBG)[9] <- "Photo.Time"
+#colnames(dataRBG)[9] <- "Photo.Time"
 dataRBG$bin <- factor(dataRBG$bin)
 
 # fix date formats (only needed if data was read with read.csv instead of f.readin.fix.data)
@@ -129,6 +129,7 @@ dataRBG2016 <- dplyr::filter(dataRBG, Sampling.Event == 2016)
 dataRBG2017 <- dplyr::filter(dataRBG, Sampling.Event == 2017)
 dataRBG2018 <- dplyr::filter(dataRBG, Sampling.Event == 2018)
 dataRBG2019 <- dplyr::filter(dataRBG, Sampling.Event == 2019)
+dataRBG2020 <- dplyr::filter(dataRBG, Sampling.Event == 2020)
 
 
 # use only first 50 days of sampling
@@ -178,17 +179,22 @@ round(57/5)
 duration(dataRBG2019)
 round(56/5)
 #round(56/10)
+duration(dataRBG2020)
+round(55/5)
+
 
 paMats2016 <- f.matrix.creator4(dataRBG2016, species, 11) # 11 if using 5-day occasion
 paMats2017 <- f.matrix.creator4(dataRBG2017, species, 12) # 14
 paMats2018 <- f.matrix.creator4(dataRBG2018, species, 11) # 12
 paMats2019 <- f.matrix.creator4(dataRBG2019, species, 11) # 11
+paMats2020 <- f.matrix.creator4(dataRBG2020, species, 11) # 11
 
 dim(paMats2016[[1]]) # check
 paMats2016[[1]] # check
 
 # check species names
-names(paMats2016) # Psophia obscura is the 1st species
+names(paMats2016) # Psophia obscura is the 14st species
+names(paMats2020)
 
 # matrices from different years should have the same size
 # so we have to add NA only columns to some matrices
@@ -197,6 +203,7 @@ dim(paMats2016[[1]]) # check
 dim(paMats2017[[1]]) # this matrix is the one with more cols, the others must match it 
 dim(paMats2018[[1]])
 dim(paMats2019[[1]])
+dim(paMats2020[[1]])
 
 
 # function to create species data
@@ -213,7 +220,9 @@ createSppData <- function(x) {
     #df4 <- as.data.frame(paMats2019[x])
     df4 <- as.data.frame(cbind(paMats2019[[x]], matrix(NA, 61, 1))) # 61,3...
     colnames(df4) <- seq(1:length(colnames(df4))); colnames(df4) <- paste("X2019.", colnames(df4), sep="")
-    bla <- cbind(df1, df2, df3, df4)
+    df5 <- as.data.frame(cbind(paMats2020[[x]], matrix(NA, 61, 1))) # 61,3...
+    colnames(df5) <- seq(1:length(colnames(df5))); colnames(df5) <- paste("X2020.", colnames(df5), sep="")
+    bla <- cbind(df1, df2, df3, df4, df5)
   }
   assign(paste("dataRBG_species", gsub(" ", "_", x), sep="_"), bla, envir = .GlobalEnv)
 }

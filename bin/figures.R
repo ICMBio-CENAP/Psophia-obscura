@@ -52,10 +52,10 @@ predictor.effects.psi <- function(x, original.predictor, coef) {
   #pred <- original.pred # it was already standardized
   psi.pred <- plogis( mean(x$BUGSoutput$sims.list$alpha.psi) +
                         mean(x$BUGSoutput$sims.list$beta.psi[, coef]) * pred )
-  
+
   array.psi.pred <- array(NA, dim = c(length(pred), mcmc.sample))
   for (i in 1:mcmc.sample){
-    array.psi.pred[,i] <- plogis( x$BUGSoutput$sims.list$alpha.psi[i] +
+    array.psi.pred[,i] <- plogis( mean(x$BUGSoutput$sims.list$alpha.psi[i,]) +
                                     x$BUGSoutput$sims.list$beta.psi[i,coef] * pred )
   }
   
@@ -65,9 +65,9 @@ predictor.effects.psi <- function(x, original.predictor, coef) {
   plot(original.pred, psi.pred, main = "", ylab = expression(psi), xlab = "", 
        ylim=c(0, 1), type = "l", lwd = 2, las=1)#, frame.plot = FALSE)
   for (i in sub.set){
-    lines(original.pred, array.psi.pred[,i], type = "l", lwd = 0.5, col = "gray")
+    lines(original.pred, array.psi.pred[,i], type = "l", lwd = 0.1, col = "steelblue")
   }
-  lines(original.pred, psi.pred, type = "l", lwd = 1, col = "black")
+  lines(original.pred, psi.pred, type = "l", lwd = 0.5, col = "black")
   #mtext(expression(psi), side=2, line=3)
 }
 #predictor.effects(out, original.elevation, "a1")
