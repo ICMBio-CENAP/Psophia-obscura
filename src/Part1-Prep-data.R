@@ -169,25 +169,22 @@ duration <- function(data) {
 
 duration(dataRBG2016) #
 round(54/5) # get the number of occasions argument for f.matrix.creator4
-#round(55/10)
 duration(dataRBG2017)
-round(60/5)
-#round(70/10)
+round(73/5)
 duration(dataRBG2018)
 round(57/5)
-#round(58/10)
 duration(dataRBG2019)
-round(56/5)
+round(57/5)
 #round(56/10)
 duration(dataRBG2020)
-round(55/5)
+round(66/5)
 
 
 paMats2016 <- f.matrix.creator4(dataRBG2016, species, 11) # 11 if using 5-day occasion
-paMats2017 <- f.matrix.creator4(dataRBG2017, species, 12) # 14
+paMats2017 <- f.matrix.creator4(dataRBG2017, species, 15) # 14
 paMats2018 <- f.matrix.creator4(dataRBG2018, species, 11) # 12
 paMats2019 <- f.matrix.creator4(dataRBG2019, species, 11) # 11
-paMats2020 <- f.matrix.creator4(dataRBG2020, species, 11) # 11
+paMats2020 <- f.matrix.creator4(dataRBG2020, species, 13) # 11
 
 dim(paMats2016[[1]]) # check
 paMats2016[[1]] # check
@@ -210,17 +207,17 @@ dim(paMats2020[[1]])
 createSppData <- function(x) {
   for(i in 1:length(x)){
     #df1 <- as.data.frame(paMats2016[x])
-    df1 <- as.data.frame(cbind(paMats2016[[x]], matrix(NA, 61, 1))) # matrix(NA, 61, 3)) if using 5-day occasion
+    df1 <- as.data.frame(cbind(paMats2016[[x]], matrix(NA, 61, 4))) # matrix(NA, 61, 3)) if using 5-day occasion
     colnames(df1) <- seq(1:length(colnames(df1))); colnames(df1) <- paste("X2016.", colnames(df1), sep="")
     df2 <- as.data.frame(paMats2017[x]) 
     colnames(df2) <- seq(1:length(colnames(df2))); colnames(df2) <- paste("X2017.", colnames(df2), sep="")
     #df3 <- as.data.frame(paMats2018[x])
-    df3 <- as.data.frame(cbind(paMats2018[[x]], matrix(NA, 61, 1))) # 61,3...
+    df3 <- as.data.frame(cbind(paMats2018[[x]], matrix(NA, 61, 4))) # 61,3...
     colnames(df3) <- seq(1:length(colnames(df3))); colnames(df3) <- paste("X2018.", colnames(df3), sep="")
     #df4 <- as.data.frame(paMats2019[x])
-    df4 <- as.data.frame(cbind(paMats2019[[x]], matrix(NA, 61, 1))) # 61,3...
+    df4 <- as.data.frame(cbind(paMats2019[[x]], matrix(NA, 61, 4))) # 61,3...
     colnames(df4) <- seq(1:length(colnames(df4))); colnames(df4) <- paste("X2019.", colnames(df4), sep="")
-    df5 <- as.data.frame(cbind(paMats2020[[x]], matrix(NA, 61, 1))) # 61,3...
+    df5 <- as.data.frame(cbind(paMats2020[[x]], matrix(NA, 61, 2))) # 61,3...
     colnames(df5) <- seq(1:length(colnames(df5))); colnames(df5) <- paste("X2020.", colnames(df5), sep="")
     bla <- cbind(df1, df2, df3, df4, df5)
   }
