@@ -218,7 +218,7 @@ predictor.effects <- function(x, original.predictor, coef) {
 }
 #predictor.effects(out, original.elevation, "a1")
 
-predictor.effects(out2, jags.data$elevation, 1)
+predictor.effects(out, jags.data$elevation, 1)
 #predictor.effects(out, original.distWater, 2)
 predictor.effects(out2, jags.data$basalArea, 3)
 predictor.effects(out2, jags.data$treeDensity, 4)

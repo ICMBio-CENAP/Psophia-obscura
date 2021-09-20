@@ -58,7 +58,8 @@ f.update.end.data <- function(data){
   }
   data$Camera.Start.Date <- data$Start.Date
   data$Camera.End.Date <- data$End.Date
-  .GlobalEnv$temp_data <- data
+  data <- filter(data, Photo.Date < End.Date) # keep only data in desired window
+  #.GlobalEnv$temp_data <- data
 } # End of function
 
 dataRBG <- f.update.end.data(dataRBG)
