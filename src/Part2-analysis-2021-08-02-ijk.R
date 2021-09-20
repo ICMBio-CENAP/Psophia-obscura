@@ -151,8 +151,8 @@ params <- c("z", "psi", "phi", "gamma", "p",
 
 
 # MCMC settings
-ni <- 200000
-nt <- 100
+ni <- 250000
+nt <- 150
 nb <- 100000
 #ni <- 25000
 #nt <- 10
