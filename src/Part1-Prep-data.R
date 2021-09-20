@@ -38,8 +38,8 @@ dataRBG$td.photo <- as.POSIXct(paste(dataRBG$Photo.Date, dataRBG$Photo.Time, sep
 
 
 # fix species names
-f.fix.species.names(dataRBG)
-dataRBG <- dataTemp # use new df created by function
+dataRBG <- f.fix.species.names(dataRBG)
+#dataRBG <- dataTemp # use new df created by function
 
 # calculate sampling effort, number of records etc
 tempdf <- distinct(dataRBG, Camera.Trap.Name, Sampling.Event, Start.Date, End.Date)
@@ -52,8 +52,8 @@ hist(tempdf$effort)
 # for this we must reset end dates using max photo date
 f.update.end.data <- function(data){
   for(i in 1:nrow(data)){
-    if (data$End.Date[i] > data$Start.Date[i] + 50) {
-      data$End.Date[i] <- data$Start.Date[i] + 50
+    if (data$End.Date[i] > data$Start.Date[i] + 60) {
+      data$End.Date[i] <- data$Start.Date[i] + 60
     }
   }
   data$Camera.Start.Date <- data$Start.Date
@@ -61,15 +61,15 @@ f.update.end.data <- function(data){
   .GlobalEnv$temp_data <- data
 } # End of function
 
-f.update.end.data(dataRBG)
+dataRBG <- f.update.end.data(dataRBG)
 # check:
-tempdf <- distinct(temp_data, Camera.Trap.Name, Sampling.Event, Start.Date, End.Date)
+tempdf <- distinct(dataRBG, Camera.Trap.Name, Sampling.Event, Start.Date, End.Date)
 tempdf$effort <- as.numeric(tempdf$End.Date-tempdf$Start.Date)
 head(tempdf)
 hist(tempdf$effort)
 
 # overwrite dataRBG with updated temp_data
-dataRBG <- temp_data
+#dataRBG <- temp_data
 
 # calculate effort number of records etc
 sum(tempdf$effort) # total effort across years
@@ -110,13 +110,21 @@ temp2 <- temp1 %>%
 hist(as.numeric(temp2$Number.of.Animals))
 
 # naive occupancy in 2016
-naive.occ <- temp1 %>%
-  group_by(Camera.Trap.Name) %>%
-  filter(Sampling.Event == 2016) %>%
-  filter(bin == "Psophia obscura") %>%
-  count()
-naive.occ$n[naive.occ$n > 1] <- 1
-sum(naive.occ$n)/61
+naive.occ <- function(year) {
+naive <-  temp1 %>%
+    group_by(Camera.Trap.Name) %>%
+    filter(Sampling.Event == year) %>%
+    filter(bin == "Psophia obscura") %>%
+    count()
+  naive$n[naive$n > 1] <- 1
+  sum(naive$n)/61
+}
+naive.occ(2016)
+naive.occ(2017)
+naive.occ(2018)
+naive.occ(2019)
+naive.occ(2020)
+
 
 #----- 4 - Extract binary presence/absence matrices for each species
 species <- unique(dataRBG$bin)
@@ -132,32 +140,6 @@ dataRBG2019 <- dplyr::filter(dataRBG, Sampling.Event == 2019)
 dataRBG2020 <- dplyr::filter(dataRBG, Sampling.Event == 2020)
 
 
-# use only first 50 days of sampling
-# since we are using only 1st 50 days, we must reset end dates using max photo date
-# NB! NOT NEEDED AS WE ALREADY UPDATED END DATES
-#f.update.end.data <- function(data, duration){
-#  new.end.date <- min(data$Start.Date)+duration
-#  df1 <- subset(data, Photo.Date <= new.end.date)
-#  for(i in 1:nrow(df1)){ 
-#    if (df1$End.Date[i] > new.end.date) {
-#      df1$End.Date[i] <- new.end.date
-#    }
-#  }
-#  df1$Camera.Start.Date <- df1$Start.Date
-#  df1$Camera.End.Date <- df1$End.Date
-#  assign("df1", df1, envir=.GlobalEnv)
-#} # End of function
-
-#f.update.end.data(dataRBG2016, 50)
-#dataRBG2016 <- df1
-#f.update.end.data(dataRBG2017, 50)
-#dataRBG2017 <- df1
-#f.update.end.data(dataRBG2018, 50)
-#dataRBG2018 <- df1
-#f.update.end.data(dataRBG2019, 50)
-#dataRBG2019 <- df1
-
-
 # Create presence/absence matrices for each species each year
 # matrix dimensions are all identical accross species and years
 
@@ -168,21 +150,20 @@ duration <- function(data) {
 }
 
 duration(dataRBG2016) #
-round(54/5) # get the number of occasions argument for f.matrix.creator4
+round(55/5) # get the number of occasions argument for f.matrix.creator4
 duration(dataRBG2017)
 round(73/5)
 duration(dataRBG2018)
-round(57/5)
+round(58/5)
 duration(dataRBG2019)
 round(57/5)
-#round(56/10)
 duration(dataRBG2020)
-round(66/5)
+round(67/5)
 
 
 paMats2016 <- f.matrix.creator4(dataRBG2016, species, 11) # 11 if using 5-day occasion
-paMats2017 <- f.matrix.creator4(dataRBG2017, species, 15) # 14
-paMats2018 <- f.matrix.creator4(dataRBG2018, species, 11) # 12
+paMats2017 <- f.matrix.creator4(dataRBG2017, species, 15) # 15
+paMats2018 <- f.matrix.creator4(dataRBG2018, species, 12) # 12
 paMats2019 <- f.matrix.creator4(dataRBG2019, species, 11) # 11
 paMats2020 <- f.matrix.creator4(dataRBG2020, species, 13) # 11
 
@@ -203,7 +184,7 @@ dim(paMats2019[[1]])
 dim(paMats2020[[1]])
 
 
-# function to create species data
+# function to create species data (adding NA columns to some matrices so that they all have same dimensions)
 createSppData <- function(x) {
   for(i in 1:length(x)){
     #df1 <- as.data.frame(paMats2016[x])
@@ -212,7 +193,7 @@ createSppData <- function(x) {
     df2 <- as.data.frame(paMats2017[x]) 
     colnames(df2) <- seq(1:length(colnames(df2))); colnames(df2) <- paste("X2017.", colnames(df2), sep="")
     #df3 <- as.data.frame(paMats2018[x])
-    df3 <- as.data.frame(cbind(paMats2018[[x]], matrix(NA, 61, 4))) # 61,3...
+    df3 <- as.data.frame(cbind(paMats2018[[x]], matrix(NA, 61, 3))) # 61,3...
     colnames(df3) <- seq(1:length(colnames(df3))); colnames(df3) <- paste("X2018.", colnames(df3), sep="")
     #df4 <- as.data.frame(paMats2019[x])
     df4 <- as.data.frame(cbind(paMats2019[[x]], matrix(NA, 61, 4))) # 61,3...

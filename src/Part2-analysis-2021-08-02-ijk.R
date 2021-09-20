@@ -92,7 +92,9 @@ for (i in 1:nsite){
 } #i
 
 # Derived parameters: Population occupancy, growth rate and turnover
-psi[i,1] <- psi1[i] # turned off because it was already defined in the likelihood
+for (i in 1:nsite){
+  psi[i,1] <- psi1[i]
+ } # i
 n.occ[1] <- sum(z[1:nsite,1])
 for (i in 1:nsite){
   for (k in 2:nyear){
@@ -168,7 +170,7 @@ jags.data$bouts <- NULL
 
 # Call JAGS from R (BRT 3 min)
 out <- jags(jags.data, inits, params, here("bin", "Dynocc_covariates_ijk.jags"), n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb)
-saveRDS(out, here("results", "pobscura_mod_2021-08-02_ijk.rds"))
+saveRDS(out, here("results", "pobscura_mod_2021-09-20_ijk.rds"))
 
 
 # coefficients 

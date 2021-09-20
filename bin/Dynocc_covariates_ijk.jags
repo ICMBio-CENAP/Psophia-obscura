@@ -62,7 +62,9 @@ for (i in 1:nsite){
 } #i
 
 # Derived parameters: Population occupancy, growth rate and turnover
-psi[i,1] <- psi1[i] # turned off because it was already defined in the likelihood
+for (i in 1:nsite){
+  psi[i,1] <- psi1[i]
+ } # i
 n.occ[1] <- sum(z[1:nsite,1])
 for (i in 1:nsite){
   for (k in 2:nyear){
