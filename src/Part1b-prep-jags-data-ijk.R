@@ -38,11 +38,19 @@ names(pobscura)
 # if using 5-day occasion:
 #y <- array(c(unlist(pobscura[,2:15]), unlist(pobscura[,16:29]), unlist(pobscura[,30:43]), unlist(pobscura[,44:57])), c(61, 14, 4))
 # if using 10-day occasion:
-y <- array(c(unlist(pobscura[,2:16]),
-             unlist(pobscura[,17:31]),
-             unlist(pobscura[,32:46]),
-             unlist(pobscura[,47:61]),
-             unlist(pobscura[,62:76]) ), c(61, 15, 5))
+#y <- array(c(unlist(pobscura[,2:16]),
+#             unlist(pobscura[,17:31]),
+#             unlist(pobscura[,32:46]),
+#             unlist(pobscura[,47:61]),
+#             unlist(pobscura[,62:76]) ), c(61, 15, 5))
+str(y)
+
+# if using 30 days/year and 6-day occasion:
+y <- array(c(unlist(pobscura[,2:11]),
+             unlist(pobscura[,12:21]),
+             unlist(pobscura[,22:31]),
+             unlist(pobscura[,32:41]),
+             unlist(pobscura[,42:51]) ), c(61, 10, 5))
 str(y)
 
 R <- dim(y)[1]
@@ -63,7 +71,8 @@ K <- dim(y)[3]
 #y <- data.frame(cbind(y2016, y2017, y2018, y2019))
 #head(y)
 
-SiteCovs <- pobscura[,77:86]
+#SiteCovs <- pobscura[,77:86]
+SiteCovs <- pobscura[,52:61] # if using 30 days/year and 6-day occasion
 names(SiteCovs)
 original.landCover <- SiteCovs[,1]
 original.distWater <- SiteCovs[,2]#/1000 # convert from metres to km

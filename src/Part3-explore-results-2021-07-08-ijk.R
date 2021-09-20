@@ -15,7 +15,7 @@ source(here("bin", "figures.R"))
 
 #----- 3 - Read and prepare data -----
 #out <- read_rds(here("results", "pobscura_mod_3predictors_simplest.rds"))
-out <- read_rds(here("results", "pobscura_mod_2021-08-02_ijk.rds"))
+out <- read_rds(here("results", "pobscura_mod_2021-09-20_ijk.rds"))
 
 
 jags.data <- read_rds(here("data", "psophia_data_ijk.rds"))
@@ -182,7 +182,18 @@ psiall.function <- function() {
          lci=round(apply(array.psi, 1, quantile, prob=0.025), 2),
          uci=round(apply(array.psi, 1, quantile, prob=0.975), 2))
 }
-psiall.function()
+psiall2 <- psiall.function()
+psiall2
+
+# save jpeg
+jpeg(here("results", "psi_temporal_trends_poor.jpg"), res=120, width = 1200, height = 900)
+plot(seq(2016,2020), psiall2$mean, type="b", ylim=c(0,1), las=1, xaxt = "n",
+     xlab="Year", ylab="psi") 
+axis(1, at = c(2016, 2017, 2018, 2019, 2020), labels = seq(2016,2020))
+segments(c(2016, 2017, 2018, 2019, 2020), psiall2$lci, c(2016, 2017, 2018, 2019, 2020), psiall2$uci)
+dev.off()
+
+
 
 # p
 pall <- round(apply(out$BUGSoutput$sims.list$p, 4, mean), 2)
