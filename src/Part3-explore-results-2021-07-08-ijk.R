@@ -226,12 +226,12 @@ psi.site <- tibble(array=(jags.data$Ind+1),
 psi.site
 summary(psi.site)
 
-means <- apply(out$BUGSoutput$sims.list$psi, 3, mean)
-lower <- apply(out$BUGSoutput$sims.list$psi, 3, quantile, probs=c(0.025))
-upper <- apply(out$BUGSoutput$sims.list$psi, 3, quantile, probs=c(0.975))
-plot(seq(2016,2020), means, type="b", ylim=c(0,1), las=1, xaxt = "n") 
-axis(1, at = c(2016, 2017, 2018, 2019, 2020), labels = seq(2016,2020))
-segments(c(2016, 2017, 2018, 2019, 2020), lower, c(2016, 2017, 2018, 2019, 2020), upper)
+#means <- apply(out$BUGSoutput$sims.list$psi, 3, mean)
+#lower <- apply(out$BUGSoutput$sims.list$psi, 3, quantile, probs=c(0.025))
+#upper <- apply(out$BUGSoutput$sims.list$psi, 3, quantile, probs=c(0.975))
+#plot(seq(2016,2020), means, type="b", ylim=c(0,1), las=1, xaxt = "n") 
+#axis(1, at = c(2016, 2017, 2018, 2019, 2020), labels = seq(2016,2020))
+#segments(c(2016, 2017, 2018, 2019, 2020), lower, c(2016, 2017, 2018, 2019, 2020), upper)
 
 
 # a better version: plot occupancy trends with uncertainty
@@ -245,7 +245,7 @@ plot.psi.temporal.trends <- function() {
   # Plot for a subsample of MCMC draws
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   plot(2016:2020, mean_psi, main = "", ylab = expression(psi), xlab = "", 
-       ylim=c(0, 1), type = "l", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
+       ylim=c(0, 1), type = "b", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
   for (i in sub.set){
     lines(2016:2020, array.psi[,i], type = "l", lwd = 0.1, col = "steelblue")
   }
@@ -344,7 +344,7 @@ plot.phi.temporal.trends <- function() {
   # Plot for a subsample of MCMC draws
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   plot(2017:2020, mean_phi, main = "", ylab = expression(phi), xlab = "", 
-       ylim=c(0, 1), type = "l", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
+       ylim=c(0, 1), type = "b", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
   for (i in sub.set){
     lines(2017:2020, array.phi[,i], type = "l", lwd = 0.1, col = "steelblue")
   }
@@ -370,7 +370,7 @@ plot.gamma.temporal.trends <- function() {
   # Plot for a subsample of MCMC draws
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   plot(2017:2020, mean_gamma, main = "", ylab = expression(gamma), xlab = "", 
-       ylim=c(0, 1), type = "l", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
+       ylim=c(0, 1), type = "b", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
   for (i in sub.set){
     lines(2017:2020, array.gamma[,i], type = "l", lwd = 0.1, col = "steelblue")
   }
@@ -387,22 +387,22 @@ dev.off()
 
 # plot growth rate trends with uncertainty
 plot.growthr.temporal.trends <- function() {
-  mean_growthr <- apply(out$BUGSoutput$sims.list$growthr, 3, median)
+  mean_growthr <- apply(out$BUGSoutput$sims.list$growthr, 2, median)
   mcmc.sample <- out$BUGSoutput$n.sims
   array.growthr <- array(NA, dim = c(nyear-1, mcmc.sample))
   for (i in 1:mcmc.sample){
-    array.growthr[,i] <- apply(out$BUGSoutput$sims.list$growthr[i,,], 2,median)
+    array.growthr[,i] <- apply(out$BUGSoutput$sims.list$growthr[i,,], 2, median)
   }
   # Plot for a subsample of MCMC draws
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
-  plot(2017:2019, mean_growthr, main = "", ylab = expression(lambda), xlab = "",
+  plot(2017:2020, mean_growthr, main = "", ylab = expression(lambda), xlab = "",
        type = "l", lwd = 2, las=1, xaxt="n", frame.plot = FALSE)
        #ylim=c(0, 1), type = "l", lwd = 2, las=1, xaxt="n", frame.plot = FALSE)
   for (i in sub.set){
-    lines(2017:2019, array.growthr[,i], type = "l", lwd = 1, col = "gray")
+    lines(2017:2020, array.growthr[,i], type = "l", lwd = 1, col = "gray")
   }
-  lines(2017:2019, mean_growthr, type = "l", lwd = 2, col = "blue")
-  axis(1, at = c(2017, 2018, 2019), labels = seq(2017,2019))
+  lines(2017:2020, mean_growthr, type = "l", lwd = 2, col = "blue")
+  axis(1, at = c(2017, 2018, 2019, 2020), labels = seq(2017,2020))
 }
 plot.growthr.temporal.trends()
 
