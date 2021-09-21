@@ -35,7 +35,6 @@ summary(out$BUGSoutput$summary[,"Rhat"])
 out$BUGSoutput$summary[which(out$BUGSoutput$summary[,"Rhat"] > 1.1),]
 dim(out$BUGSoutput$summary[which(out$BUGSoutput$summary[,"Rhat"] > 1.1),]) # how many failed to converge?
 
-#out$BUGSoutput$summary
 
 ##----- Initial psi and p
 
@@ -61,11 +60,11 @@ coef.function(out)
 
 # plot significant effects: distWater on psi
 predictor.effects.psi(out, pobscura$point.elevation, 1)
-mtext("Elevation (MASL)", side=1, line=3)
+mtext("Elevation (masl)", side=1, line=3)
 # save jpeg
 jpeg(here("results", "elevation_effect_psi.jpg"), res=120, width = 800, height = 500)
 predictor.effects.psi(out, pobscura$point.elevation, 1)
-mtext("Elevation (MASL)", side=1, line=3)
+mtext("Elevation (masl)", side=1, line=3)
 dev.off()
 
 # plot significant effects: distWater on psi
@@ -105,60 +104,28 @@ predictor.effects.psi(out, pobscura$recovery, 5)
 mtext("Recovery time (years)", side=1, line=3)
 dev.off()
 
+# multipanel predictor effects
 
-# multipanel
-add_label_legend <- function(pos = "topleft", label, ...) {
-  legend(pos, label, bty = "n", ...)
-}
-par(mfrow=c(2,2))
-par(mar=c(5,4,1,1))
-predictor.effects.psi(out, pobscura$point.elevation, 1)
-mtext("Elevation (MASL)", side=1, line=3)
-add_label_legend("topleft", "A")
-predictor.effects.psi(out, pobscura$basal.area, 3)
-mtext("Basal area (m²/ha)", side=1, line=3)
-add_label_legend("topleft", "B")
-predictor.effects.psi(out, pobscura$tree.density, 4)
-mtext("Tree density (ind/ha)", side=1, line=3)
-add_label_legend("topleft", "C")
-predictor.effects.psi(out, pobscura$recovery, 5)
-mtext("Recovery time (years)", side=1, line=3)
-add_label_legend("topleft", "D")
-dev.off()
-
+# with four predictors
+multipanel.4graphs()
 # save jpeg
-jpeg(here("results", "Fig_2.jpg"), res=120, width = 1200, height = 900)
-par(mfrow=c(2,2))
-par(mar=c(3,3,1,1))
-predictor.effects.psi(out, pobscura$point.elevation, 1)
-#mtext("Elevation (MASL)", side=1, line=3)
-add_label_legend("topleft", "A")
-predictor.effects.psi(out, pobscura$basal.area, 3)
-#mtext("Basal area (m²/ha)", side=1, line=3)
-add_label_legend("topleft", "B")
-predictor.effects.psi(out, pobscura$tree.density, 4)
-#mtext("Tree density (ind/ha)", side=1, line=3)
-add_label_legend("topleft", "C")
-predictor.effects.psi(out, pobscura$recovery, 5)
-#mtext("Recovery time (years)", side=1, line=3)
-add_label_legend("topleft", "D")
+#jpeg(here("results", "Fig_2.jpg"), res=120, width = 1200, height = 900)
+#multipanel.4graphs()
+#dev.off()
+
+# using only predictors with significant effect
+multipanel.3graphs() # all but basal area which was non-significant
+# save jpeg
+jpeg(here("results", "Fig_2.jpg"), res=120, width = 800, height = 1200)
+multipanel.3graphs()
 dev.off()
 
 
 # alternative: check posterior distribution of coefficients estimate
 jpeg(here("results", "all_coefficients.jpg"), res=120, width = 900, height = 1200)
-par(mfrow=c(3,2))
-hist(out$BUGSoutput$sims.list$beta.psi[,1], xlab="Elevation (b1)", main="" )
-abline(v=0, col="red", lty=2)
-hist(out$BUGSoutput$sims.list$beta.psi[,2], xlab="Distance to edge (b2)", main="" )
-abline(v=0, col="red", lty=2)
-hist(out$BUGSoutput$sims.list$beta.psi[,3], xlab="Basal area (b3)", main="" )
-abline(v=0, col="red", lty=2)
-hist(out$BUGSoutput$sims.list$beta.psi[,4], xlab="Tree density (b4)", main="" )
-abline(v=0, col="red", lty=2)
-hist(out$BUGSoutput$sims.list$beta.psi[,5], xlab="Recovery time (b5)", main="" )
-abline(v=0, col="red", lty=2)
+plot.coefs.posterior()
 dev.off()
+
 
 ##----- temporal trends
 
@@ -234,27 +201,8 @@ summary(psi.site)
 #segments(c(2016, 2017, 2018, 2019, 2020), lower, c(2016, 2017, 2018, 2019, 2020), upper)
 
 
-# a better version: plot occupancy trends with uncertainty
-plot.psi.temporal.trends <- function() {
-  mean_psi <- apply(out$BUGSoutput$sims.list$psi[,,], 3, mean)
-  mcmc.sample <- out$BUGSoutput$n.sims
-  array.psi <- array(NA, dim = c(nyear, mcmc.sample))
-  for (i in 1:mcmc.sample){
-    array.psi[,i] <- apply(out$BUGSoutput$sims.list$psi[i,,], 2, mean)
-  }
-  # Plot for a subsample of MCMC draws
-  sub.set <- sort(sample(1:mcmc.sample, size = 200))
-  plot(2016:2020, mean_psi, main = "", ylab = expression(psi), xlab = "", 
-       ylim=c(0, 1), type = "b", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
-  for (i in sub.set){
-    lines(2016:2020, array.psi[,i], type = "l", lwd = 0.1, col = "steelblue")
-  }
-  lines(2016:2020, mean_psi, type = "l", lwd = 0.2, col = "black")
-  axis(1, at = c(2016, 2017, 2018, 2019, 2020), labels = seq(2016,2020))
-}
+# Plot psi temporal trends
 plot.psi.temporal.trends()
-
-
 # save jpeg
 jpeg(here("results", "psi_temporal_trends.jpg"), res=120, width = 1200, height = 900)
 plot.psi.temporal.trends()

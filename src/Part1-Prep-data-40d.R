@@ -1,0 +1,348 @@
+# Part1-Prepare data
+
+# Read in a TEAM data set and create and format so it is ready for wildlife community model
+# Written by Jorge Ahumada @ Conservation International
+# Adapted by Elildo Carvalho Jr @ ICMBio/CENAP, 2020-04-02
+
+#----- 1 - Load libraries-----
+library(dplyr)
+library(lubridate)
+library(here)
+
+
+#----- 2 - Source files-----
+here <- here::here # to avoid confusion with "here" function from lubridate
+#source(here("bin", "camera trap analysis functions-10-06-18.R")) # using package here to build a path to the subdirectory "bin"
+source(here("bin", "ahumada_codes.R"))
+source(here("bin", "f-matrix-creator-experimental-probably-ok-but-need-check.R"))
+source(here("bin", "fix_species_names.R")) # fix some names and remove "false" species
+
+
+## ----Load data-------
+#dataRBG <- f.readin.fix.data(here("data", "Wild_ID_RBG_2016to2019.csv"))
+dataRBG <- read.csv(here("data", "Wild_ID_RBG_2016to2020.csv"))
+
+# some fixes
+dataRBG$Sampling.Unit.Name <- as.factor(dataRBG$Camera.Trap.Name)
+#colnames(dataRBG)[9] <- "Photo.Time"
+dataRBG$bin <- factor(dataRBG$bin)
+
+# fix date formats (only needed if data was read with read.csv instead of f.readin.fix.data)
+dataRBG$Photo.Date <- as.Date(dataRBG$Photo.Date)
+dataRBG$Camera.Start.Date <- as.Date(dataRBG$Camera.Start.Date)
+dataRBG$Camera.End.Date <- as.Date(dataRBG$Camera.End.Date)
+dataRBG$Start.Date <- as.Date(dataRBG$Start.Date)
+dataRBG$End.Date <- as.Date(dataRBG$End.Date)
+dataRBG$Photo.Time <- format(as.POSIXct(dataRBG$Photo.Time, format="%HH %MM %SS"), "%H:%M:%S")
+dataRBG$td.photo <- as.POSIXct(paste(dataRBG$Photo.Date, dataRBG$Photo.Time, sep=" "), format="%Y-%m-%d %H:%M:%OS", tz="UTC")
+
+
+# fix species names
+dataRBG <- f.fix.species.names(dataRBG)
+#dataRBG <- dataTemp # use new df created by function
+
+# calculate sampling effort, number of records etc
+tempdf <- distinct(dataRBG, Camera.Trap.Name, Sampling.Event, Start.Date, End.Date)
+tempdf$effort <- as.numeric(tempdf$End.Date-tempdf$Start.Date)
+head(tempdf)
+hist(tempdf$effort)
+
+# Sampling was much longer in 2017 than in other years
+# let limit maximum sampling to 60 days
+# for this we must reset end dates using max photo date
+f.update.end.data <- function(data){
+  for(i in 1:nrow(data)){
+    if (data$End.Date[i] > data$Start.Date[i] + 40) {
+      data$End.Date[i] <- data$Start.Date[i] + 40
+    }
+  }
+  data$Camera.Start.Date <- data$Start.Date
+  data$Camera.End.Date <- data$End.Date
+  data <- filter(data, Photo.Date < End.Date) # keep only data in desired window
+  #.GlobalEnv$temp_data <- data
+} # End of function
+
+dataRBG <- f.update.end.data(dataRBG)
+# check:
+tempdf <- distinct(dataRBG, Camera.Trap.Name, Sampling.Event, Start.Date, End.Date)
+tempdf$effort <- as.numeric(tempdf$End.Date-tempdf$Start.Date)
+head(tempdf)
+hist(tempdf$effort)
+
+# overwrite dataRBG with updated temp_data
+#dataRBG <- temp_data
+
+# calculate effort number of records etc
+sum(tempdf$effort) # total effort across years
+tempdf %>%
+  group_by(Sampling.Event) %>%
+  dplyr::summarize(mean = mean(effort), total=sum(effort) )
+
+# number of photos
+dataRBG %>%
+  group_by(Sampling.Event) %>%
+  filter(bin == "Psophia obscura") %>%
+  summarize(photos = n())
+
+# number of independent records
+temp1 <- dataRBG %>%
+  filter(bin == "Psophia obscura")
+temp1$td.photo <- as.POSIXct(temp1$td.photo) # somehow td.photo class was reverted to factor 
+temp1 <- f.separate.events(temp1, 60)
+temp1 <- distinct(temp1, Camera.Trap.Name, bin, grp, .keep_all = TRUE)
+temp1 %>%
+  group_by(Sampling.Event) %>%
+  filter(bin == "Psophia obscura") %>%
+  summarize(records = n())
+
+temp1 %>%
+  group_by(Sampling.Event) %>%
+  filter(bin == "Psophia obscura") %>%
+  summarize(mean_group = mean(Number.of.Animals), min = min(Number.of.Animals), max = max(Number.of.Animals),
+            lci=quantile(Number.of.Animals, probs=0.025), uci=quantile(Number.of.Animals, probs=0.975))
+
+temp1 %>%
+  filter(bin == "Psophia obscura") %>%
+  summarize(mean_group = mean(Number.of.Animals), min = min(Number.of.Animals), max = max(Number.of.Animals))
+
+temp2 <- temp1 %>%
+  group_by(Sampling.Event) %>%
+  filter(bin == "Psophia obscura")
+hist(as.numeric(temp2$Number.of.Animals))
+
+# naive occupancy in 2016
+naive.occ <- function(year) {
+naive <-  temp1 %>%
+    group_by(Camera.Trap.Name) %>%
+    filter(Sampling.Event == year) %>%
+    filter(bin == "Psophia obscura") %>%
+    count()
+  naive$n[naive$n > 1] <- 1
+  sum(naive$n)/61
+}
+naive.occ(2016)
+naive.occ(2017)
+naive.occ(2018)
+naive.occ(2019)
+naive.occ(2020)
+
+
+#----- 4 - Extract binary presence/absence matrices for each species
+species <- unique(dataRBG$bin)
+cams <- unique(dataRBG$Camera.Trap.Name)
+years <- unique(dataRBG$Sampling.Event)
+secondPeriods <- 1:10
+
+# Separate different years
+dataRBG2016 <- dplyr::filter(dataRBG, Sampling.Event == 2016)
+dataRBG2017 <- dplyr::filter(dataRBG, Sampling.Event == 2017)
+dataRBG2018 <- dplyr::filter(dataRBG, Sampling.Event == 2018)
+dataRBG2019 <- dplyr::filter(dataRBG, Sampling.Event == 2019)
+dataRBG2020 <- dplyr::filter(dataRBG, Sampling.Event == 2020)
+
+
+# Create presence/absence matrices for each species each year
+# matrix dimensions are all identical across species and years
+
+# before using f.matrix.creator check sampling duration
+duration <- function(data) {
+  sampling.days <- max(data$End.Date) - min(data$Start.Date) + 1
+  return(sampling.days)
+}
+
+duration(dataRBG2016) #
+duration(dataRBG2017)
+duration(dataRBG2018)
+duration(dataRBG2019)
+duration(dataRBG2020)
+d2016 <- round(as.numeric(duration(dataRBG2016))/5) # get the number of occasions argument for f.matrix.creator4
+d2017 <- round(as.numeric(duration(dataRBG2017))/5)
+d2018 <- round(as.numeric(duration(dataRBG2018))/5)
+d2019 <- round(as.numeric(duration(dataRBG2019))/5)
+d2020 <- round(as.numeric(duration(dataRBG2020))/5)
+
+# create matrices
+paMats2016 <- f.matrix.creator4(dataRBG2016, species, d2016)
+paMats2017 <- f.matrix.creator4(dataRBG2017, species, d2017)
+paMats2018 <- f.matrix.creator4(dataRBG2018, species, d2018)
+paMats2019 <- f.matrix.creator4(dataRBG2019, species, d2019)
+paMats2020 <- f.matrix.creator4(dataRBG2020, species, d2020)
+
+
+dim(paMats2016[[1]]) # check
+paMats2016[[1]] # check
+
+# check species names
+names(paMats2016) # Psophia obscura is the 12nd species
+names(paMats2020)
+
+# matrices from different years should have the same size
+# so we have to add NA only columns to some matrices
+# check here how many new cols will be needed and add using createSppData function
+dim(paMats2016[[1]]) # check
+dim(paMats2017[[1]]) # this matrix is the one with more cols, the others must match it 
+dim(paMats2018[[1]])
+dim(paMats2019[[1]])
+dim(paMats2020[[1]])
+n_cols <- c(dim(paMats2016[[1]])[2], dim(paMats2017[[1]])[2], dim(paMats2018[[1]])[2], dim(paMats2019[[1]])[2], dim(paMats2020[[1]])[2])
+n_cols
+new_cols <- max(n_cols)-(n_cols)
+new_cols
+
+# function to create species data (adding NA columns to some matrices so that they all have same dimensions)
+createSppData <- function(x) {
+  for(i in 1:length(x)){
+    df1 <- as.data.frame(cbind(paMats2016[[x]], matrix(NA, 61, 4))) # matrix(NA, 61, 3)) if using 5-day occasion
+    colnames(df1) <- seq(1:length(colnames(df1))); colnames(df1) <- paste("X2016.", colnames(df1), sep="")
+    
+    df2 <- as.data.frame(paMats2017[x]) # if no new cols
+    colnames(df2) <- seq(1:length(colnames(df2))); colnames(df2) <- paste("X2017.", colnames(df2), sep="")
+    
+    #df3 <- as.data.frame(paMats2018[x])# if no new cols
+    df3 <- as.data.frame(cbind(paMats2018[[x]], matrix(NA, 61, 5))) # 61,3...
+    colnames(df3) <- seq(1:length(colnames(df3))); colnames(df3) <- paste("X2018.", colnames(df3), sep="")
+    
+    #df4 <- as.data.frame(paMats2019[x]) # if no new cols
+    df4 <- as.data.frame(cbind(paMats2019[[x]], matrix(NA, 61, 3))) # 61,3...
+    colnames(df4) <- seq(1:length(colnames(df4))); colnames(df4) <- paste("X2019.", colnames(df4), sep="")
+    
+    #df5 <- as.data.frame(paMats2020[x]) # if no new cols
+    df5 <- as.data.frame(cbind(paMats2020[[x]], matrix(NA, 61, 3))) # 61,3...
+    colnames(df5) <- seq(1:length(colnames(df5))); colnames(df5) <- paste("X2020.", colnames(df5), sep="")
+    bla <- cbind(df1, df2, df3, df4, df5)
+  }
+  assign(paste("dataRBG_species", gsub(" ", "_", x), sep="_"), bla, envir = .GlobalEnv)
+}
+
+# check if it works
+createSppData("Psophia obscura")
+dataRBG_species_Psophia_obscura
+dim(dataRBG_species_Psophia_obscura)
+
+
+#----- 4 - Read covariate data
+
+# Land cover Mapbiomas
+cover <- read.csv(here("data", "cover_mapbiomas.csv"))
+names(cover)[2] <- "Camera.Trap.Name"
+names(cover)[4] <- "cover"
+cover$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", cover$Camera.Trap.Name)
+cover$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", cover$Camera.Trap.Name)
+cover <- cover[,c("Camera.Trap.Name", "cover")]
+head(cover)
+hist(cover$cover)
+sort(cover$cover)
+# virtually all sites have 100% forest cover so maybe this variable should not be used
+# an alternative would be to use distance to edges
+
+# Distance to water
+dist.water <- read.csv(here("data", "dist_agua_conv_trsh6_13fev.csv"))
+names(dist.water)[1] <- "Camera.Trap.Name"
+dist.water$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", dist.water$Camera.Trap.Name)
+dist.water$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", dist.water$Camera.Trap.Name)
+names(dist.water)[4] <- "dist.water"
+dist.water <- dist.water[,c("Camera.Trap.Name", "dist.water")]
+head(dist.water)
+
+# Distance to forest edge
+dist.edge <- read.csv(here("data", "dist_to_edge.csv"))
+names(dist.edge) <- c("Camera.Trap.Name", "dist.edge")
+dist.edge$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", dist.edge$Camera.Trap.Name)
+dist.edge$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", dist.edge$Camera.Trap.Name)
+head(dist.edge)
+
+# distance to pasture > 10ha is exactly the same as distance to edge so lets keep the former
+#dist.pasto <- read.csv(here("data", "dist_pasto10ha.csv"))
+#names(dist.pasto)[1] <- "Camera.Trap.Name"
+#dist.pasto$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", dist.pasto$Camera.Trap.Name)
+#dist.pasto$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", dist.pasto$Camera.Trap.Name)
+#names(dist.pasto)[2] <- "dist.pasto"
+#dist.pasto <- dist.pasto[,c("Camera.Trap.Name", "dist.pasto")]
+#head(dist.pasto)
+
+
+# elevation
+elev <- read.csv(here("data", "slope_elev.csv"))
+names(elev)[1] <- "Camera.Trap.Name"
+names(elev)[3] <- "point.elevation"
+names(elev)[6] <- "range.elevation"
+elev$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", elev$Camera.Trap.Name)
+elev$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", elev$Camera.Trap.Name)
+elev <- elev[,c("Camera.Trap.Name", "point.elevation", "range.elevation")]
+head(elev)
+
+# tree structure
+trees <- read.csv(here("data", "trees.csv"))
+head(trees)
+trees <- trees[,c("Camera.Trap.Name", "basal.area", "tree.density")]
+
+# camera array (block)
+block <- read.csv(here("data", "blocos.csv"))
+names(block)[1] <- "Camera.Trap.Name"
+names(block)[2] <- "block"
+block$Camera.Trap.Name <- gsub("Ctrbg", "CT-RBG-", block$Camera.Trap.Name)
+block$Camera.Trap.Name <- gsub("Ctrgb", "CT-RBG-", block$Camera.Trap.Name)
+block <- block[,c("Camera.Trap.Name", "block")]
+head(block)
+
+# recovery time
+# use data from the Forest Ecology and Management paper
+covars_hmsc <- read.csv(here("data", "covars_hmsc.csv"))
+covars_hmsc$recovery <- as.numeric(covars_hmsc$recovery)
+recovery <- covars_hmsc[,c("Camera.Trap.Name", "recovery")]
+head(recovery)
+
+# logging bouts
+covars_hmsc$bouts <- as.numeric(covars_hmsc$bouts)
+bouts <- covars_hmsc[,c("Camera.Trap.Name", "bouts")]
+head(bouts)
+
+## create a single covariates dataframe
+covars <- merge(cover, dist.water, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, dist.edge, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, elev, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, trees, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, block, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, recovery, by="Camera.Trap.Name", all.x=TRUE)
+covars <- merge(covars, bouts, by="Camera.Trap.Name", all.x=TRUE)
+head(covars)
+dim(covars)
+
+# there are two NAs in recovery and bouts, the fix is the following
+covars[which(is.na(covars$recovery)),]
+covars[covars$Camera.Trap.Name=="CT-RBG-1-11", "recovery"] <- 6
+covars[covars$Camera.Trap.Name=="CT-RBG-2-82", "recovery"] <- 15
+covars[which(is.na(covars$recovery)),]
+
+covars[which(is.na(covars$bouts)),]
+covars[covars$Camera.Trap.Name=="CT-RBG-1-11", "bouts"] <- round(mean(covars$bouts, na.rm=TRUE))
+covars[covars$Camera.Trap.Name=="CT-RBG-2-82", "bouts"] <- round(mean(covars$bouts, na.rm=TRUE))
+covars[which(is.na(covars$bouts)),]
+
+# merge 
+dataRBG_species_Psophia_obscura$Camera.Trap.Name <- rownames(dataRBG_species_Psophia_obscura)
+row.names(dataRBG_species_Psophia_obscura) <- NULL
+pobscura <- dataRBG_species_Psophia_obscura
+head(pobscura)
+
+
+# create a separate 2017 dataset for single-season model
+#Pobscura2017 <- dataRBG_species_Psophia_obscura[,c(45,12:22)]
+#Pobscura2017 <- merge(Pobscura2017, covars, by="Camera.Trap.Name")
+
+pobscura <- merge(pobscura, covars, by="Camera.Trap.Name")
+names(pobscura)[1] <- "cams"
+
+# Save to disk
+#saveRDS(Pobscura2017, here("data","Pobscura2017.rds"))
+saveRDS(pobscura, here("data","pobscura_40d.rds"))
+
+
+# file for map (Figure 1 in paper)
+#bla1 <- data.frame(cams)
+#names(bla1) <- "Camera.Trap.Name"
+#bla3 <- merge(bla1, dataRBG[,c("Camera.Trap.Name", "Latitude", "Longitude")], by="Camera.Trap.Name")
+#bla3
+#bla4 <- distinct(bla3)
+#bla4
+#write.csv(bla4, here("data", "psophia-cams.csv"))

@@ -1,45 +1,6 @@
 
-Fig_effects <- function(x) {
-  par(mfrow=c(2,2))
-  par(mar=c(3, 3, 2, 2))
-  
-  # effect of elevation on initial psi
-  hist(x$BUGSoutput$sims.list$beta[,1], main="", xlab="", las=1)
-  abline(v = 0, lty=2, lwd=3, col="red")
-  #abline(v = quantile(out$BUGSoutput$sims.listbeta[,1], probs=c(0.025, 0.975)), lty=2)
-  mtext("a", side = 3, line = -1.3, adj = 0.05, cex = 1.2, font = 2, col = "black")
-  
-  # effect of elevation on initial psi
-  hist(x$BUGSoutput$sims.list$beta[,2], main="", xlab="", las=1)
-  abline(v = 0, lty=2, lwd=3, col="red")
-  #abline(v = quantile(out$BUGSoutput$sims.list$beta[,2], probs=c(0.025, 0.975)), lty=2)
-  mtext("b", side = 3, line = -1.3, adj = 0.05, cex = 1.2, font = 2, col = "black")
-
-  # effect of elevation on initial psi
-  hist(x$BUGSoutput$sims.list$beta[,3], main="", xlab="", las=1)
-  abline(v = 0, lty=2, lwd=3, col="red")
-  #abline(v = quantile(out$BUGSoutput$sims.list$beta[,3], probs=c(0.025, 0.975)), lty=2)
-  mtext("c", side = 3, line = -1.3, adj = 0.05, cex = 1.2, font = 2, col = "black")
-
-  # effect of elevation on initial psi
-  hist(x$BUGSoutput$sims.list$beta[,4], main="", xlab="", las=1)
-  abline(v = 0, lty=2, lwd=3, col="red")
-  #abline(v = quantile(out$BUGSoutput$sims.list$beta[,4], probs=c(0.025, 0.975)), lty=2)
-  mtext("d", side = 3, line = -1.3, adj = 0.05, cex = 1.2, font = 2, col = "black")
-  
-}
-#Fig_effects(out)
-
-
-# alternative plot with darkened histogram tails
-#my_hist <- hist(out$BUGSoutput$sims.list$c1, nclass=15, main="", xlab="", las=1, ylab="")
-#my_color= ifelse(my_hist$breaks < quantile(out$BUGSoutput$sims.list$c1, probs=c(0.025)), "blue" , ifelse (my_hist$breaks >= quantile(out$BUGSoutput$sims.list$c1, probs=c(0.975)), "blue", "grey" ))
-#plot(my_hist, col=my_color, main="", las=1, xlab="")
-#abline(v = quantile(out$BUGSoutput$sims.list$c1, probs=c(0.025, 0.975)), lty=2)
-
-
 #-----
-# Plot effects with uncertainty
+# Plot effects on psi with uncertainty
 predictor.effects.psi <- function(x, original.predictor, coef) {
   
   #dev.off()
@@ -61,9 +22,9 @@ predictor.effects.psi <- function(x, original.predictor, coef) {
   
   # Plot for a subsample of MCMC draws
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
-  
-  plot(original.pred, psi.pred, main = "", ylab = expression(psi), xlab = "", 
-       ylim=c(0, 1), type = "l", lwd = 2, las=1)#, frame.plot = FALSE)
+  par(cex.axis = 1.5, cex.lab=2)
+  plot(original.pred, psi.pred, main = "", ylab = expression(psi), xlab = "", yaxp= c(0, 1, 2),
+       ylim=c(0, 1), type = "l", lwd = 2, las=1, cex=1.5)#, frame.plot = FALSE)
   for (i in sub.set){
     lines(original.pred, array.psi.pred[,i], type = "l", lwd = 0.1, col = "steelblue")
   }
@@ -74,7 +35,7 @@ predictor.effects.psi <- function(x, original.predictor, coef) {
 
 
 #-----
-# Plot effects with uncertainty
+# Plot effects on p with uncertainty
 predictor.effects.p <- function(x, original.predictor, coef) {
   
   #dev.off()
@@ -107,7 +68,92 @@ predictor.effects.p <- function(x, original.predictor, coef) {
 }
 #predictor.effects(out, original.elevation, "a1")
 
+#-----
+# multipanel plot of effects
+multipanel.4graphs <- function() {
+  
+  add_label_legend <- function(pos = "topleft", label, ...) {
+    legend(pos, label, bty = "n", ...)
+  }
+  par(mfrow=c(2,2))
+  par(mar=c(3,3,1,1))
+  predictor.effects.psi(out, pobscura$point.elevation, 1)
+  #mtext("Elevation (MASL)", side=1, line=3)
+  add_label_legend("topleft", "A")
+  predictor.effects.psi(out, pobscura$basal.area, 3)
+  #mtext("Basal area (m²/ha)", side=1, line=3)
+  add_label_legend("topleft", "B")
+  predictor.effects.psi(out, pobscura$tree.density, 4)
+  #mtext("Tree density (ind/ha)", side=1, line=3)
+  add_label_legend("topleft", "C")
+  predictor.effects.psi(out, pobscura$recovery, 5)
+  #mtext("Recovery time (years)", side=1, line=3)
+  add_label_legend("topleft", "D")
 
+}
+
+
+multipanel.3graphs <- function() {
+  
+  add_label_legend <- function(pos = "topleft", label, ...) {
+    legend(pos, label, bty = "n", cex=1.5, ...)
+  }
+  par(mfrow=c(3,1))
+  par(mar=c(5,5,1,1))
+  predictor.effects.psi(out, pobscura$point.elevation, 1)
+  mtext("Elevation (masl)", side=1, line=3)
+  add_label_legend("topleft", "A")
+  predictor.effects.psi(out, pobscura$tree.density, 4)
+  mtext("Tree density (ind/ha)", side=1, line=3)
+  add_label_legend("topleft", "B")
+  predictor.effects.psi(out, pobscura$recovery, 5)
+  mtext("Recovery time (years)", side=1, line=3)
+  add_label_legend("topleft", "C")
+
+}
+
+
+# alternative to multipanel: check posterior distribution of coefficients estimate
+plot.coefs.posterior <- function() {
+  par(mfrow=c(3,2))
+  hist(out$BUGSoutput$sims.list$beta.psi[,1], xlab="Elevation (b1)", main="" )
+  abline(v=0, col="red", lty=2)
+  hist(out$BUGSoutput$sims.list$beta.psi[,2], xlab="Distance to edge (b2)", main="" )
+  abline(v=0, col="red", lty=2)
+  hist(out$BUGSoutput$sims.list$beta.psi[,3], xlab="Basal area (b3)", main="" )
+  abline(v=0, col="red", lty=2)
+  hist(out$BUGSoutput$sims.list$beta.psi[,4], xlab="Tree density (b4)", main="" )
+  abline(v=0, col="red", lty=2)
+  hist(out$BUGSoutput$sims.list$beta.psi[,5], xlab="Recovery time (b5)", main="" )
+  abline(v=0, col="red", lty=2)
+}
+
+
+
+
+#-----
+# Plot temporal trends with uncertainty
+plot.psi.temporal.trends <- function() {
+  mean_psi <- apply(out$BUGSoutput$sims.list$psi[,,], 3, mean)
+  mcmc.sample <- out$BUGSoutput$n.sims
+  array.psi <- array(NA, dim = c(nyear, mcmc.sample))
+  for (i in 1:mcmc.sample){
+    array.psi[,i] <- apply(out$BUGSoutput$sims.list$psi[i,,], 2, mean)
+  }
+  # Plot for a subsample of MCMC draws
+  sub.set <- sort(sample(1:mcmc.sample, size = 200))
+  par(cex.axis = 1, cex.lab=1.5)
+  plot(2016:2020, mean_psi, main = "", ylab = expression(psi), xlab = "", 
+       ylim=c(0, 1), type = "b", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
+  for (i in sub.set){
+    lines(2016:2020, array.psi[,i], type = "l", lwd = 0.1, col = "steelblue")
+  }
+  lines(2016:2020, mean_psi, type = "l", lwd = 0.2, col = "black")
+  axis(1, at = c(2016, 2017, 2018, 2019, 2020), labels = seq(2016,2020))
+}
+
+#---------------------------------------------------
+# probably everything below is rubbish
 #-----
 Fig_effects.psi <- function(x) {
   par(mfrow=c(2,2))
