@@ -48,7 +48,7 @@ head(tempdf)
 hist(tempdf$effort)
 
 # Sampling was much longer in 2017 than in other years
-# let limit maximum sampling to 60 days
+# let limit maximum sampling to 30 days
 # for this we must reset end dates using max photo date
 f.update.end.data <- function(data){
   for(i in 1:nrow(data)){
@@ -68,6 +68,12 @@ tempdf <- distinct(dataRBG, Camera.Trap.Name, Sampling.Event, Start.Date, End.Da
 tempdf$effort <- as.numeric(tempdf$End.Date-tempdf$Start.Date)
 head(tempdf)
 hist(tempdf$effort)
+
+# how many operational cameras per year
+dataRBG %>%
+  group_by(Sampling.Event) %>%
+  summarise(count = n_distinct(Camera.Trap.Name))
+
 
 # overwrite dataRBG with updated temp_data
 #dataRBG <- temp_data
@@ -111,20 +117,23 @@ temp2 <- temp1 %>%
 hist(as.numeric(temp2$Number.of.Animals))
 
 # naive occupancy in 2016
-naive.occ <- function(year) {
-naive <-  temp1 %>%
+naive.occ <- function(year, ncams) {
+  df_temp <- tibble(nsites=as.numeric(NA), naive_occ=as.numeric(NA))
+  naive <-  temp1 %>%
     group_by(Camera.Trap.Name) %>%
     filter(Sampling.Event == year) %>%
     filter(bin == "Psophia obscura") %>%
     count()
   naive$n[naive$n > 1] <- 1
-  sum(naive$n)/61
+  df_temp[1,"nsites"] <- sum(naive$n)
+  df_temp[1,"naive_occ"] <- round(sum(naive$n)/ncams, 2)
+  df_temp
 }
-naive.occ(2016)
-naive.occ(2017)
-naive.occ(2018)
-naive.occ(2019)
-naive.occ(2020)
+naive.occ(2016, 57)
+naive.occ(2017, 59)
+naive.occ(2018, 57)
+naive.occ(2019, 60)
+naive.occ(2020, 59)
 
 
 #----- 4 - Extract binary presence/absence matrices for each species

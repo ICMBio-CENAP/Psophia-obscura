@@ -42,7 +42,7 @@ dim(out$BUGSoutput$summary[which(out$BUGSoutput$summary[,"Rhat"] > 1.1),]) # how
 coef.function <- function(x) {
   coefs <- data.frame(x$BUGSoutput$summary[c("beta.psi[1]", "beta.psi[2]", "beta.psi[3]", "beta.psi[4]", "beta.psi[5]"),])
   coefs <- tibble(predictor=c("elevation", "distEdge","basalArea", "treeDensity", "recovery"),
-                  coeff=row.names(coefs), mean=coefs$mean, lower=coefs$X2.5., upper=coefs$X97.5.,
+                  coeff=row.names(coefs), mean=coefs$mean, sd=coefs$sd, lower=coefs$X2.5., upper=coefs$X97.5.,
                   Rhat=coefs$Rhat, n.eff=coefs$n.eff)
   .GlobalEnv$coefs <- coefs
   coefs
@@ -146,6 +146,7 @@ psiall.function <- function() {
   }
   tibble(year=seq(2016,2020),
          mean=round(apply(array.psi, 1, mean), 2),
+         sd=round(apply(array.psi, 1, sd), 2),
          lci=round(apply(array.psi, 1, quantile, prob=0.025), 2),
          uci=round(apply(array.psi, 1, quantile, prob=0.975), 2))
 }
@@ -176,6 +177,7 @@ pall.function <- function() {
   }
   tibble(year=seq(2016,2020),
          mean=round(apply(array.p, 1, mean), 2),
+         sd=round(apply(array.p, 1, sd), 2),
          lci=round(apply(array.p, 1, quantile, prob=0.025), 2),
          uci=round(apply(array.p, 1, quantile, prob=0.975), 2))
 }
@@ -213,18 +215,19 @@ dev.off()
 growthr_table <- tibble(year=c(2016, 2017, 2018, 2019),
                         mean=apply(out$BUGSoutput$sims.list$growthr, 2, mean),
                         median=apply(out$BUGSoutput$sims.list$growthr, 2, median),
+                        sd=apply(out$BUGSoutput$sims.list$growthr, 2, sd),
                         LCI=apply(out$BUGSoutput$sims.list$growthr, 2, quantile, prob=.025),
                         UCI=apply(out$BUGSoutput$sims.list$growthr, 2, quantile, prob=.975) )
 growthr_table
 
-with(growthr_table, plot(year, median, xlab="", ylab=expression(lambda), type="b", ylim=c(0,2), las=1, xaxt = "n") )
+with(growthr_table, plot(year, median, xlab="", ylab=expression(Growth ~ rate ~ (lambda) ), type="b", ylim=c(0,2), las=1, xaxt = "n") )
 axis(1, at = c(2016, 2017, 2018, 2019), labels = c("2016-17", "2017-18", "2018-19", "2019-20")) #seq(2016,2019))
 segments(c(2016, 2017, 2018, 2019), growthr_table$LCI, c(2016, 2017, 2018, 2019), growthr_table$UCI)
 abline(h=1, lty=2)
 
 # save jpeg
 jpeg(here("results", "lambda.jpg"), res=120, width = 1200, height = 900)
-with(growthr_table, plot(year, median, xlab="", ylab=expression(lambda), type="b", ylim=c(0,2), las=1, xaxt = "n") )
+with(growthr_table, plot(year, median, xlab="", ylab=expression(Growth ~ rate ~ (lambda) ), type="b", ylim=c(0,2), las=1, xaxt = "n") )
 axis(1, at = c(2016, 2017, 2018, 2019), labels = c("2016-17", "2017-18", "2018-19", "2019-20")) #seq(2016,2019))
 segments(c(2016, 2017, 2018, 2019), growthr_table$LCI, c(2016, 2017, 2018, 2019), growthr_table$UCI)
 abline(h=1, lty=2)
@@ -248,6 +251,7 @@ phiall.function <- function() {
   #}
   tibble(year=seq(2016,2019),
          mean=round(apply(out$BUGSoutput$sims.list$phi, 2, mean), 2),
+         sd=round(apply(out$BUGSoutput$sims.list$phi, 2, sd), 2),
          lci=round(apply(out$BUGSoutput$sims.list$phi, 2, quantile, prob=0.025), 2),
          uci=round(apply(out$BUGSoutput$sims.list$phi, 2, quantile, prob=0.975), 2))
 }
@@ -271,6 +275,7 @@ gammaall.function <- function() {
   #}
   tibble(year=seq(2016,2019),
          mean=round(apply(out$BUGSoutput$sims.list$gamma, 2, mean), 2),
+         sd=round(apply(out$BUGSoutput$sims.list$gamma, 2, sd), 2),
          lci=round(apply(out$BUGSoutput$sims.list$gamma, 2, quantile, prob=0.025), 2),
          uci=round(apply(out$BUGSoutput$sims.list$gamma, 2, quantile, prob=0.975), 2))
 }
