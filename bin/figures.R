@@ -27,9 +27,9 @@ predictor.effects.psi <- function(x, original.predictor, coef) {
   plot(original.pred, psi.pred, main = "", ylab = "", xlab = "", yaxp= c(0, 1, 2),
        ylim=c(0, 1), type = "l", lwd = 2, las=1, cex=1.5)#, frame.plot = FALSE)
   for (i in sub.set){
-    lines(original.pred, array.psi.pred[,i], type = "l", lwd = 0.1, col = "steelblue")
+    lines(original.pred, array.psi.pred[,i], type = "l", lwd = 0.5, col = "grey")
   }
-  lines(original.pred, psi.pred, type = "l", lwd = 0.5, col = "black")
+  lines(original.pred, psi.pred, type = "l", lwd = 0.8, col = "black")
   #mtext(expression(psi), side=2, line=3)
 }
 #predictor.effects(out, original.elevation, "a1")
@@ -62,7 +62,7 @@ predictor.effects.p <- function(x, original.predictor, coef) {
   plot(original.pred, p.pred, main = "", ylab = expression(p), xlab = "", 
        ylim=c(0, 1), type = "l", lwd = 2, las=1, frame.plot = FALSE)
   for (i in sub.set){
-    lines(original.pred, array.p.pred[,i], type = "l", lwd = 1, col = "gray")
+    lines(original.pred, array.p.pred[,i], type = "l", lwd = 3, col = "gray")
   }
   lines(original.pred, p.pred, type = "l", lwd = 2, col = "blue")
   #mtext(expression(p), side=2, line=3)
@@ -149,12 +149,13 @@ plot.psi.temporal.trends <- function() {
   plot(2016:2020, mean_psi, main = "", ylab = expression(Occupancy ~ (psi) ), xlab = "Year", 
        ylim=c(0, 1), type = "b", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
   for (i in sub.set){
-    lines(2016:2020, array.psi[,i], type = "l", lwd = 0.1, col = "steelblue")
+    lines(2016:2020, array.psi[,i], type = "l", lwd = 0.5, col = "grey")
   }
-  lines(2016:2020, mean_psi, type = "l", lwd = 0.2, col = "black")
+  lines(2016:2020, mean_psi, type = "l", lwd = 0.8, col = "black")
+  points(2016:2020, mean_psi, pch = 1, lwd = 1, col = "black")
   axis(1, at = c(2016, 2017, 2018, 2019, 2020), labels = seq(2016,2020))
 }
-
+#plot.psi.temporal.trends()
 #---------------------------------------------------
 # probably everything below is rubbish
 #-----

@@ -116,7 +116,7 @@ multipanel.4graphs()
 # using only predictors with significant effect
 multipanel.3graphs() # all but basal area which was non-significant
 # save jpeg
-jpeg(here("results", "Fig_2.jpg"), res=120, width = 800, height = 1200)
+jpeg(here("results", "Fig2.jpg"), res=120, width = 800, height = 1200)
 multipanel.3graphs()
 dev.off()
 
