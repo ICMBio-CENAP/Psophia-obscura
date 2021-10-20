@@ -120,6 +120,10 @@ jpeg(here("results", "Fig_2.jpg"), res=120, width = 800, height = 1200)
 multipanel.3graphs()
 dev.off()
 
+tiff(here("results", "Fig2.tif"), res=300, width = 1500, height = 3000)
+multipanel.3graphs()
+dev.off()
+
 
 # alternative: check posterior distribution of coefficients estimate
 jpeg(here("results", "all_coefficients.jpg"), res=120, width = 900, height = 1200)
@@ -207,6 +211,11 @@ summary(psi.site)
 plot.psi.temporal.trends()
 # save jpeg
 jpeg(here("results", "psi_temporal_trends.jpg"), res=120, width = 1200, height = 900)
+plot.psi.temporal.trends()
+dev.off()
+
+# save tiff
+tiff(here("results", "Fig3.tif"), res=300, width = 2400, height = 1600)
 plot.psi.temporal.trends()
 dev.off()
 

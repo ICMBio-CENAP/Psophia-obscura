@@ -352,6 +352,6 @@ saveRDS(pobscura, here("data","pobscura.rds"))
 #names(bla1) <- "Camera.Trap.Name"
 #bla3 <- merge(bla1, dataRBG[,c("Camera.Trap.Name", "Latitude", "Longitude")], by="Camera.Trap.Name")
 #bla3
-#bla4 <- distinct(bla3)
+#bla4 <- distinct(bla3, Camera.Trap.Name, .keep_all=TRUE)
 #bla4
 #write.csv(bla4, here("data", "psophia-cams.csv"))

@@ -23,7 +23,8 @@ predictor.effects.psi <- function(x, original.predictor, coef) {
   # Plot for a subsample of MCMC draws
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   par(cex.axis = 1.5, cex.lab=2)
-  plot(original.pred, psi.pred, main = "", ylab = expression(Occupancy ~ prob. ~ (psi) ), xlab = "", yaxp= c(0, 1, 2),
+  #plot(original.pred, psi.pred, main = "", ylab = expression(Occupancy ~ (psi) ), xlab = "", yaxp= c(0, 1, 2),
+  plot(original.pred, psi.pred, main = "", ylab = "", xlab = "", yaxp= c(0, 1, 2),
        ylim=c(0, 1), type = "l", lwd = 2, las=1, cex=1.5)#, frame.plot = FALSE)
   for (i in sub.set){
     lines(original.pred, array.psi.pred[,i], type = "l", lwd = 0.1, col = "steelblue")
@@ -99,19 +100,20 @@ multipanel.3graphs <- function() {
     legend(pos, label, bty = "n", cex=1.5, ...)
   }
   par(mfrow=c(3,1))
-  par(mar=c(5,5,1,1))
+  par(mar=c(5,5,1,2))
   predictor.effects.psi(out, pobscura$point.elevation, 1)
   mtext("Elevation (masl)", side=1, line=3)
   add_label_legend("topleft", "A")
   predictor.effects.psi(out, pobscura$tree.density, 4)
   mtext("Tree density (ind/ha)", side=1, line=3)
   add_label_legend("topleft", "B")
+  mtext(expression(Occupancy ~ (psi) ), side=2, line=3)
   predictor.effects.psi(out, pobscura$recovery, 5)
   mtext("Recovery time (years)", side=1, line=3)
   add_label_legend("topleft", "C")
 
 }
-
+#multipanel.3graphs()
 
 # alternative to multipanel: check posterior distribution of coefficients estimate
 plot.coefs.posterior <- function() {
@@ -144,7 +146,7 @@ plot.psi.temporal.trends <- function() {
   sub.set <- sort(sample(1:mcmc.sample, size = 200))
   par(cex.axis = 1, cex.lab=1.5)
   par(mar=c(5,5,1,1))
-  plot(2016:2020, mean_psi, main = "", ylab = expression(Occupancy ~ prob. ~ (psi) ), xlab = "Year", 
+  plot(2016:2020, mean_psi, main = "", ylab = expression(Occupancy ~ (psi) ), xlab = "Year", 
        ylim=c(0, 1), type = "b", lwd = 2, las=1, xaxt="n")#, frame.plot = FALSE)
   for (i in sub.set){
     lines(2016:2020, array.psi[,i], type = "l", lwd = 0.1, col = "steelblue")

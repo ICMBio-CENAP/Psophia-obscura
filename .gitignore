@@ -7,3 +7,5 @@
 *.xlsx
 pobscura_model.rds
 *.rds
+*.tif
+*.jpg
