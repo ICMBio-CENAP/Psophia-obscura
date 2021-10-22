@@ -1,23 +1,18 @@
-# Psophia-obscura
+# Black-winged Trumpeter
 
-Estudo sobre a conservação do jacamim-das-costas-escuras *Psophia obscura* na REBIO do Gurupi.
-Por Elildo Carvalho Jr, Alexandre Martins e Eloisa Mendonca.
-Para artigo em preparação
+Data and codes to run the analysis used in Carvalho Jr et al. manuscript *Current status of the Critically Endangered Black-winged
+Trumpeter (Psophia obscura) in one of its last strongholds*
 
+### Description
 
-### Descrição
-```src``` Este diretório contém os códigos para as análises.
+```src``` analysis codes.
 
-```data``` Dados brutos e processados. 
+```data``` raw and processed data used in the analysis.
 
-```bin``` Um conjunto de códigos úteis para consertar os dados brutos ou funções que são chamadas pelos códigos da análise.
+```bin``` toolbox with useful functions. 
 
-```results``` Contém resultados das análises, como tabelas, figuras, etc. 
-
-
-<img src="results/psi_temporal_trends.jpg" title="Occupancy trends" width="500">
-<img src="results/basalArea_effect_psi.jpg" title="Effect of basal area on psi" width="500">
+```results``` figures, tables etc.
 
 
-# Contato
-Se tiver questões entre em contato com <elildojr@gmail.com>
+# Contact Us
+If you have any questions please contact <elildojr@gmail.com>
