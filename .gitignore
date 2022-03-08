@@ -9,3 +9,4 @@ pobscura_model.rds
 *.rds
 *.tif
 *.jpg
+temp/

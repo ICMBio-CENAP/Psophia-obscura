@@ -1,5 +1,7 @@
-# Based on book BPA with WinBUGS
+# Codes based on book Bayesian Population Analysis using WinBUGS
+# https://www.sciencedirect.com/book/9780123870209/bayesian-population-analysis-using-winbugs
 # Codes adapted from site BPA with JAGS
+# https://www.vogelwarte.ch/de/projekte/publikationen/bpa/code-for-running-bpa-using-jags
 
 #----- 1 - Load libraries-----
 #library(dplyr)
@@ -14,7 +16,6 @@ library(ggplot2)
 source(here("bin", "figures.R"))
 
 #----- 3 - Read and prepare data -----
-#out <- read_rds(here("results", "pobscura_mod_3predictors_simplest.rds"))
 out <- read_rds(here("results", "pobscura_mod_2021-09-20_ijk.rds"))
 
 
