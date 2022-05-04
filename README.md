@@ -1,17 +1,16 @@
 # Black-winged Trumpeter
 
-Data and codes to run the analysis used in Carvalho Jr et al. manuscript *Current status of the Critically Endangered Black-winged
-Trumpeter (Psophia obscura) in one of its last strongholds*, submitted to Bird Conservation International
+Data and codes to run the analysis used in Carvalho Jr *et al*. (in press) *Current status of the Critically Endangered Black-winged Trumpeter (Psophia obscura) in one of its last strongholds*. Bird Conservation International.
 
 ### Description
 
 ```src``` analysis codes.
 
-```data``` raw and processed data used in the analysis.
+```data``` data used in the analysis.
 
 ```bin``` toolbox with useful functions. 
 
-```results``` figures, tables etc.
+```results``` model results
 
 
 # Contact Us
