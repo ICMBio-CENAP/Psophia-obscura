@@ -10,3 +10,4 @@ pobscura_model.rds
 *.tif
 *.jpg
 temp/
+prep-data.R
