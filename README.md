@@ -1,6 +1,6 @@
 # Black-winged Trumpeter
 
-Data and codes to run the analysis used in Carvalho Jr *et al*. (in press) *Current status of the Critically Endangered Black-winged Trumpeter (Psophia obscura) in one of its last strongholds*. Bird Conservation International.
+Data and codes to run the analysis used in [CARVALHO, E., MENDONÇA, E., LOPES, A., & HAUGAASEN, T. (2022). Current status of the Critically Endangered Black-winged Trumpeter Psophia obscura in one of its last strongholds. Bird Conservation International, 1-14.] (https://10.1017/S0959270922000077)
 
 ### Description
 
